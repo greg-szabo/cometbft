@@ -233,13 +233,10 @@ func (pubKey PubKey) Type() string {
 // VerifySignature verifies a signature of the form R || S || V.
 // It rejects signatures which are not in lower-S form.
 func (pubKey PubKey) VerifySignature(msg []byte, sigStr []byte) bool {
-	// HV2: this check is removed because the sigSize validation is performed in ethCrypto.VerifySignature
+	if len(sigStr) != SigSize {
 
-	/*
-		if len(sigStr) != SigSize {
-			return false
-		}
-	*/
+		return false
+	}
 
 	hash := ethCrypto.Keccak256(msg)
 	return ethCrypto.VerifySignature(pubKey, hash, sigStr[:64])
