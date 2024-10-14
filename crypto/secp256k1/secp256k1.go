@@ -234,6 +234,7 @@ func (pubKey PubKey) Type() string {
 // It rejects signatures which are not in lower-S form.
 func (pubKey PubKey) VerifySignature(msg []byte, sigStr []byte) bool {
 	if len(sigStr) != SigSize {
+
 		return false
 	}
 
