@@ -208,7 +208,7 @@ func (pubKey PubKey) Address() crypto.Address {
 	if len(pubKey) != PubKeySize {
 		panic(fmt.Sprintf("length of pubkey is incorrect %d != %d", len(pubKey), PubKeySize))
 	}
-	return ethCrypto.Keccak256(pubKey[1:])[12:])
+	return ethCrypto.Keccak256(pubKey[1:])[12:]
 }
 
 // Bytes returns the pubkey marshaled with amino encoding.
