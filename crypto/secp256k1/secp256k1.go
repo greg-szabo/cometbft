@@ -57,7 +57,7 @@ func (privKey PrivKeyOld) Sign(msg []byte) ([]byte, error) {
 	return PrivKey(privKey).Sign(msg)
 }
 
-// Bytes marshalls the private key using amino encoding.
+// Bytes marshals the private key using amino encoding.
 func (privKey PrivKey) Bytes() []byte {
 	return []byte(privKey)
 }
@@ -71,8 +71,8 @@ func (privKey PrivKey) PubKey() crypto.PubKey {
 	}
 
 	pk := ethCrypto.FromECDSAPub(&privateObject.PublicKey)
-	return PubKey(pk)
 
+	return PubKey(pk)
 }
 
 // Equals - you probably don't need to use this.
@@ -100,6 +100,7 @@ func genPrivKey(rand io.Reader) PrivKey {
 	d := new(big.Int)
 
 	for {
+		privKeyBytes = [PrivKeySize]byte{}
 		_, err := io.ReadFull(rand, privKeyBytes[:])
 		if err != nil {
 			panic(err)
@@ -114,7 +115,7 @@ func genPrivKey(rand io.Reader) PrivKey {
 	}
 
 	// crypto.CRandBytes is guaranteed to be 32 bytes long, so it can be
-	// casted to PrivKey.
+	// cast to PrivKey.
 	return PrivKey(privKeyBytes[:])
 }
 
@@ -165,7 +166,7 @@ func (privKey PrivKey) Sign(msg []byte) ([]byte, error) {
 var _ crypto.PubKey = PubKey{}
 var _ crypto.PubKey = PubKeyOld{}
 
-// PubKeySize (uncompressed) is comprised of 65 bytes for two field elements (x and y)
+// PubKeySize (uncompressed) is composed of 65 bytes for two field elements (x and y)
 // and a prefix byte (0x04) to indicate that it is uncompressed.
 const PubKeySize = 65
 
@@ -207,7 +208,7 @@ func (pubKey PubKey) Address() crypto.Address {
 	if len(pubKey) != PubKeySize {
 		panic(fmt.Sprintf("length of pubkey is incorrect %d != %d", len(pubKey), PubKeySize))
 	}
-	return crypto.Address(ethCrypto.Keccak256(pubKey[1:])[12:])
+	return ethCrypto.Keccak256(pubKey[1:])[12:])
 }
 
 // Bytes returns the pubkey marshaled with amino encoding.
