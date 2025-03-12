@@ -224,6 +224,24 @@ func startTestRound(cs *State, height int64, round int32) {
 	cs.startRoutines(0)
 }
 
+func createProposalBlockWithTime(t *testing.T, cs *State, time time.Time) (*types.Block, *types.PartSet, types.BlockID) {
+	t.Helper()
+	block, _, err := cs.createProposalBlock(context.Background())
+	if !time.IsZero() {
+		block.Time = cmttime.Canonical(time)
+	}
+	assert.NoError(t, err)
+	blockParts, err := block.MakePartSet(types.BlockPartSizeBytes)
+	assert.NoError(t, err)
+	blockID := types.BlockID{Hash: block.Hash(), PartSetHeader: blockParts.Header()}
+	return block, blockParts, blockID
+}
+
+func createProposalBlock(t *testing.T, cs *State) (*types.Block, *types.PartSet, types.BlockID) {
+	t.Helper()
+	return createProposalBlockWithTime(t, cs, time.Time{})
+}
+
 // Create proposal block from cs1 but sign it with vs.
 func decideProposal(
 	ctx context.Context,
