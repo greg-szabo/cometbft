@@ -1178,13 +1178,17 @@ func TestCreateProposalWithBlob(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	_, _, err = blockExec.CreateProposalBlock(ctx, height, state, commit, proposerAddr)
+	_, gotBlob, err := blockExec.CreateProposalBlock(
+		ctx,
+		height,
+		state,
+		commit,
+		proposerAddr,
+	)
 	require.NoError(t, err)
 
-	// var (
-	// 	wantBlob            = []byte("blob")
-	// )
-	// require.Equal(t, wantBlob, gotNextProposerAddr)
+	wantBlob := types.Blob("blob")
+	require.Equal(t, wantBlob, gotBlob)
 }
 
 func stripSignatures(ec *types.ExtendedCommit) {
