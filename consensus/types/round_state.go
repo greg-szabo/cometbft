@@ -101,12 +101,12 @@ type RoundState struct {
 	LastValidators            *types.ValidatorSet `json:"last_validators"`
 	TriggeredTimeoutPrecommit bool                `json:"triggered_timeout_precommit"`
 
-	ProposalBlob      *types.Blob    `json:"proposal_blob"`
+	ProposalBlob      types.Blob     `json:"proposal_blob"`
 	ProposalBlobParts *types.PartSet `json:"proposal_blob_parts"`
-	LockedBlob        *types.Blob    `json:"locked_blob"`
+	LockedBlob        types.Blob     `json:"locked_blob"`
 	LockedBlobParts   *types.PartSet `json:"locked_blob_parts"`
 	// Last known blob of POL mentioned above.
-	ValidBlob *types.Blob `json:"valid_blob"`
+	ValidBlob types.Blob `json:"valid_blob"`
 	// Last known blob parts of POL mentioned above.
 	ValidBlobParts *types.PartSet `json:"valid_blob_parts"`
 }
