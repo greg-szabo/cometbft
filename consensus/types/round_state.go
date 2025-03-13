@@ -141,6 +141,9 @@ func (rs *RoundState) RoundStateSimple() RoundStateSimple {
 		ProposalBlockHash: rs.ProposalBlock.Hash(),
 		LockedBlockHash:   rs.LockedBlock.Hash(),
 		ValidBlockHash:    rs.ValidBlock.Hash(),
+		ProposalBlobHash:  rs.ProposalBlob.Hash(),
+		LockedBlobHash:    rs.LockedBlob.Hash(),
+		ValidBlobHash:     rs.ValidBlob.Hash(),
 		Votes:             votesJSON,
 		Proposer: types.ValidatorInfo{
 			Address: addr,
