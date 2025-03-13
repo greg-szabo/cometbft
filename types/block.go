@@ -65,7 +65,10 @@ func (b Blob) Hash() []byte {
 
 // String returns a hex-encoded representation of the blob.
 func (b Blob) String() string {
-	return hex.EncodeToString(b)
+	if b == nil {
+		return "nil-Blob"
+	}
+	return "Blob#" + hex.EncodeToString(b)
 }
 
 // Block defines the atomic unit of a CometBFT blockchain.
