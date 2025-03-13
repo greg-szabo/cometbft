@@ -208,10 +208,13 @@ func (rs *RoundState) StringIndented(indent string) string {
 %s  Validators:    %v
 %s  Proposal:      %v
 %s  ProposalBlock: %v %v
+%s  ProposalBlob:  %v %v
 %s  LockedRound:   %v
 %s  LockedBlock:   %v %v
+%s  LockedBlob:    %v %v
 %s  ValidRound:    %v
 %s  ValidBlock:    %v %v
+%s  ValidBlob:     %v %v
 %s  Votes:         %v
 %s  LastCommit:    %v
 %s  LastValidators:%v
@@ -222,10 +225,13 @@ func (rs *RoundState) StringIndented(indent string) string {
 		indent, rs.Validators.StringIndented(indent+"  "),
 		indent, rs.Proposal,
 		indent, rs.ProposalBlockParts.StringShort(), rs.ProposalBlock.StringShort(),
+		indent, rs.ProposalBlobParts.StringShort(), rs.ProposalBlob.String(),
 		indent, rs.LockedRound,
 		indent, rs.LockedBlockParts.StringShort(), rs.LockedBlock.StringShort(),
+		indent, rs.LockedBlobParts.StringShort(), rs.LockedBlob.String(),
 		indent, rs.ValidRound,
 		indent, rs.ValidBlockParts.StringShort(), rs.ValidBlock.StringShort(),
+		indent, rs.ValidBlobParts.StringShort(), rs.ValidBlob.String(),
 		indent, rs.Votes.StringIndented(indent+"  "),
 		indent, rs.LastCommit.StringShort(),
 		indent, rs.LastValidators.StringIndented(indent+"  "),
