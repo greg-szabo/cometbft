@@ -2571,7 +2571,6 @@ type ResponsePrepareProposal struct {
 	Txs [][]byte `protobuf:"bytes,1,rep,name=txs,proto3" json:"txs,omitempty"`
 	// A blob (see EIP-4844) is a piece of temporary data attached to a blob
 	// transaction. CometBFT will gossip this blob separately from the block.
-	// The ABCI app stores the blob transaction at index 0 of txs field.
 	Blob []byte `protobuf:"bytes,2,opt,name=blob,proto3" json:"blob,omitempty"`
 }
 
