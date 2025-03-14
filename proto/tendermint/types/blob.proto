@@ -27,7 +27,7 @@ message Blob {
   bytes data = 1;
 }
 
-// BlobID defines the unique ID of a block as its hash and its PartSetHeader.
+// BlobID defines the unique ID of a blob as its hash and its PartSetHeader.
 message BlobID {
   bytes hash = 1;
   PartSetHeader part_set_header = 2 [(gogoproto.nullable) = false];
