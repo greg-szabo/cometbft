@@ -81,6 +81,11 @@ func (p *Proposal) ValidateBasic() error {
 	if len(p.Signature) > MaxSignatureSize {
 		return fmt.Errorf("signature is too big (max: %d)", MaxSignatureSize)
 	}
+
+	if err := p.BlobID.ValidateBasic(); err != nil {
+		return fmt.Errorf("wrong BlobID: %w", err)
+	}
+
 	return nil
 }
 
@@ -92,16 +97,20 @@ func (p *Proposal) ValidateBasic() error {
 // 4. POL round
 // 5. first 6 bytes of signature
 // 6. timestamp
+// 7. blob ID
 //
 // See BlockID#String.
 func (p *Proposal) String() string {
-	return fmt.Sprintf("Proposal{%v/%v (%v, %v) %X @ %s}",
+	return fmt.Sprintf(
+		"Proposal{%v/%v (%v, %v) %X @ %s %v}",
 		p.Height,
 		p.Round,
 		p.BlockID,
 		p.POLRound,
 		cmtbytes.Fingerprint(p.Signature),
-		CanonicalTime(p.Timestamp))
+		CanonicalTime(p.Timestamp),
+		p.BlobID,
+	)
 }
 
 // ProposalSignBytes returns the proto-encoding of the canonicalized Proposal,
