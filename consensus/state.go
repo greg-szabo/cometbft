@@ -1249,6 +1249,7 @@ func (cs *State) defaultDecideProposal(height int64, round int32) {
 			round,
 			cs.ValidRound,
 			propBlockID,
+			types.BlobID{}, // TODO: add part set
 		)
 		p = proposal.ToProto()
 	)
