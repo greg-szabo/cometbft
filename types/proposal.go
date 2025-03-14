@@ -30,11 +30,15 @@ type Proposal struct {
 	BlockID   BlockID   `json:"block_id"`
 	Timestamp time.Time `json:"timestamp"`
 	Signature []byte    `json:"signature"`
+
+	// Not every proposal includes a blob, so some valid proposals may have an empty
+	// BlobID.
+	BlobID BlobID `json:"blob_id"`
 }
 
 // NewProposal returns a new Proposal.
 // If there is no POLRound, polRound should be -1.
-func NewProposal(height int64, round int32, polRound int32, blockID BlockID) *Proposal {
+func NewProposal(height int64, round int32, polRound int32, blockID BlockID, blobID BlobID) *Proposal {
 	return &Proposal{
 		Type:      cmtproto.ProposalType,
 		Height:    height,
@@ -42,6 +46,7 @@ func NewProposal(height int64, round int32, polRound int32, blockID BlockID) *Pr
 		BlockID:   blockID,
 		POLRound:  polRound,
 		Timestamp: cmttime.Now(),
+		BlobID:    blobID,
 	}
 }
 
