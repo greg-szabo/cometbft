@@ -33,6 +33,10 @@ func (b Blob) Hash() []byte {
 	return tmhash.Sum(b)
 }
 
+func (b Blob) IsNil() bool {
+	return len(b) == 0
+}
+
 // String returns a hex-encoded representation of the blob.
 func (b Blob) String() string {
 	if b == nil {
