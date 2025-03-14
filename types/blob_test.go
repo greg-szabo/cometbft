@@ -52,6 +52,49 @@ func TestBlobIDValidateBasic(t *testing.T) {
 	}
 }
 
+func TestBlobIDIsComplete(t *testing.T) {
+	var (
+		reusableBuf = make([]byte, tmhash.Size)
+		testCases   = []struct {
+			name       string
+			blobID     BlobID
+			wantResult bool
+		}{
+			{
+				name: "Complete",
+				blobID: BlobID{
+					Hash:          reusableBuf,
+					PartSetHeader: PartSetHeader{Total: 2, Hash: reusableBuf},
+				},
+				wantResult: true,
+			},
+			{
+				name:       "HashFalse",
+				blobID:     BlobID{Hash: []byte("hash")},
+				wantResult: false,
+			},
+			{
+				name:       "PartSetSizeFalse",
+				blobID:     BlobID{Hash: reusableBuf},
+				wantResult: false,
+			},
+			{
+				name: "PartSetHashFalse",
+				blobID: BlobID{
+					Hash:          reusableBuf,
+					PartSetHeader: PartSetHeader{Total: 2},
+				},
+				wantResult: false,
+			},
+		}
+	)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.wantResult, tc.blobID.IsComplete())
+		})
+	}
+}
+
 func TestBlobIDProtoBuf(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		var (
@@ -102,7 +145,7 @@ func TestBlobIDProtoBuf(t *testing.T) {
 			{
 				name: "PartSetHeader",
 				protoBlobID: &cmtproto.BlobID{
-					Hash: tmhash.Sum([]byte("hash")),
+					Hash: make([]byte, tmhash.Size),
 					PartSetHeader: cmtproto.PartSetHeader{
 						Total: 1,
 						Hash:  []byte{0},

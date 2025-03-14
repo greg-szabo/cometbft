@@ -84,7 +84,7 @@ func (m *Blob) GetData() []byte {
 	return nil
 }
 
-// BlobID defines the unique ID of a block as its hash and its PartSetHeader.
+// BlobID defines the unique ID of a blob as its hash and its PartSetHeader.
 type BlobID struct {
 	Hash          []byte        `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
 	PartSetHeader PartSetHeader `protobuf:"bytes,2,opt,name=part_set_header,json=partSetHeader,proto3" json:"part_set_header"`
