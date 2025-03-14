@@ -145,6 +145,7 @@ func (p *Proposal) ToProto() *cmtproto.Proposal {
 	pb.PolRound = p.POLRound
 	pb.Timestamp = p.Timestamp
 	pb.Signature = p.Signature
+	pb.BlobID = p.BlobID.ToProto()
 
 	return pb
 }
@@ -163,6 +164,11 @@ func ProposalFromProto(pp *cmtproto.Proposal) (*Proposal, error) {
 		return nil, err
 	}
 
+	blobID, err := BlobIDFromProto(&pp.BlobID)
+	if err != nil {
+		return nil, err
+	}
+
 	p.BlockID = *blockID
 	p.Type = pp.Type
 	p.Height = pp.Height
@@ -170,6 +176,7 @@ func ProposalFromProto(pp *cmtproto.Proposal) (*Proposal, error) {
 	p.POLRound = pp.PolRound
 	p.Timestamp = pp.Timestamp
 	p.Signature = pp.Signature
+	p.BlobID = blobID
 
 	return p, p.ValidateBasic()
 }
