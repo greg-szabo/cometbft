@@ -3,6 +3,8 @@ package consensus
 import (
 	"bytes"
 	"crypto/rand"
+	"github.com/cometbft/cometbft/crypto/tmhash"
+	cmtrand "github.com/cometbft/cometbft/libs/rand"
 	"os"
 	"path/filepath"
 
@@ -17,6 +19,7 @@ import (
 	"github.com/cometbft/cometbft/crypto/merkle"
 	"github.com/cometbft/cometbft/libs/autofile"
 	"github.com/cometbft/cometbft/libs/log"
+	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	cmttypes "github.com/cometbft/cometbft/types"
 	cmttime "github.com/cometbft/cometbft/types/time"
 )
@@ -82,10 +85,30 @@ func TestWALTruncate(t *testing.T) {
 
 func TestWALEncoderDecoder(t *testing.T) {
 	now := cmttime.Now()
+
+	// Setup for Proposal message
+	cmtrand.Seed(0)
+	randbytes := cmtrand.Bytes(tmhash.Size)
+	block1 := cmttypes.BlockID{
+		Hash:          randbytes,
+		PartSetHeader: cmttypes.PartSetHeader{Total: 5, Hash: randbytes},
+	}
+	proposal := cmttypes.Proposal{
+		Type:      cmtproto.ProposalType,
+		Height:    42,
+		Round:     13,
+		POLRound:  12,
+		BlockID:   block1,
+		Timestamp: time.Time{},
+		Signature: randbytes,
+		BlobID:    cmttypes.BlobID{},
+	}
+
 	msgs := []TimedWALMessage{
 		{Time: now, Msg: EndHeightMessage{0}},
 		{Time: now, Msg: timeoutInfo{Duration: time.Second, Height: 1, Round: 1, Step: types.RoundStepPropose}},
 		{Time: now, Msg: cmttypes.EventDataRoundState{Height: 1, Round: 1, Step: ""}},
+		{Time: now, Msg: msgInfo{Msg: &ProposalMessage{Proposal: &proposal}, PeerID: "Nobody"}},
 	}
 
 	b := new(bytes.Buffer)
