@@ -30,6 +30,9 @@ type Blob []byte
 
 // Hash returns the SHA-256 hash of the blob.
 func (b Blob) Hash() []byte {
+	if len(b) == 0 {
+		return nil
+	}
 	return tmhash.Sum(b)
 }
 
