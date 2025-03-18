@@ -1279,6 +1279,14 @@ func (cs *State) isProposalComplete() bool {
 	// we have the proposal. if there's a POLRound,
 	// make sure we have the prevotes from it too
 	if cs.Proposal.POLRound < 0 {
+		// If the block has an associated blob, the proposal is only complete once
+		// the blob has been received. To determine whether we need to wait for a
+		// blob, we check if the proposal includes a BlobID. If it does, we must
+		// wait for the blob before marking the proposal as complete.
+		if !cs.Proposal.BlobID.IsNil() {
+			return !cs.ProposalBlob.IsNil()
+		}
+
 		return true
 	}
 	// if this is false the proposer is lying or we haven't received the POL yet
