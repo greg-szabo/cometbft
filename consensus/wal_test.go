@@ -109,6 +109,20 @@ func TestWALEncoderDecoder(t *testing.T) {
 		{Time: now, Msg: timeoutInfo{Duration: time.Second, Height: 1, Round: 1, Step: types.RoundStepPropose}},
 		{Time: now, Msg: cmttypes.EventDataRoundState{Height: 1, Round: 1, Step: ""}},
 		{Time: now, Msg: msgInfo{Msg: &ProposalMessage{Proposal: &proposal}, PeerID: "Nobody"}},
+		{Time: now, Msg: msgInfo{Msg: &BlobPartMessage{
+			Height: 1,
+			Round:  1,
+			Part:   &cmttypes.Part{
+				Index: 1,
+				Bytes: []byte("blob"),
+				Proof: merkle.Proof{
+					Total:    1,
+					Index:    1,
+					LeafHash: cmtrand.Bytes(tmhash.Size),
+					Aunts:    nil,
+				},
+			},
+		}, PeerID: "Nobody"}},
 	}
 
 	b := new(bytes.Buffer)
