@@ -975,7 +975,10 @@ func (conR *Reactor) peerStatsRoutine() {
 				if numParts := ps.RecordBlockPart(); numParts%blocksToContributeToBecomeGoodPeer == 0 {
 					conR.Switch.MarkPeerAsGood(peer)
 				}
+			case *BlobPartMessage:
+				// TODO
 			}
+
 		case <-conR.conS.Quit():
 			return
 
@@ -1037,11 +1040,16 @@ type PeerState struct {
 type peerStateStats struct {
 	Votes      int `json:"votes"`
 	BlockParts int `json:"block_parts"`
+	BlobParts  int `json:"blob_parts"`
 }
 
 func (pss peerStateStats) String() string {
-	return fmt.Sprintf("peerStateStats{votes: %d, blockParts: %d}",
-		pss.Votes, pss.BlockParts)
+	return fmt.Sprintf(
+		"peerStateStats{votes: %d, blockParts: %d, blobParts: %d}",
+		pss.Votes,
+		pss.BlockParts,
+		pss.BlobParts,
+	)
 }
 
 // NewPeerState returns a new PeerState for the given Peer
@@ -1336,7 +1344,25 @@ func (ps *PeerState) BlockPartsSent() int {
 	return ps.Stats.BlockParts
 }
 
-// SetHasVote sets the given vote as known by the peer
+// RecordBlobPart increments internal blob part related statistics for this peer.
+// It returns the total number of added blob parts.
+func (ps *PeerState) RecordBlobPart() int {
+	ps.mtx.Lock()
+	defer ps.mtx.Unlock()
+
+	ps.Stats.BlobParts++
+	return ps.Stats.BlobParts
+}
+
+// BlobPartsSent returns the number of useful blob parts the peer has sent us.
+func (ps *PeerState) BlobPartsSent() int {
+	ps.mtx.Lock()
+	defer ps.mtx.Unlock()
+
+	return ps.Stats.BlobParts
+}
+
+// SetHasVote sets the given vote as known by the peer.
 func (ps *PeerState) SetHasVote(vote *types.Vote) {
 	ps.mtx.Lock()
 	defer ps.mtx.Unlock()
