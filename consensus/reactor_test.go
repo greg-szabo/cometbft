@@ -1104,8 +1104,10 @@ func TestVoteSetBitsMessageValidateBasic(t *testing.T) {
 
 func TestMarshalJSONPeerState(t *testing.T) {
 	ps := NewPeerState(nil)
+
 	data, err := json.Marshal(ps)
 	require.NoError(t, err)
+
 	require.JSONEq(t, `{
 		"round_state":{
 			"height": "0",
@@ -1127,7 +1129,8 @@ func TestMarshalJSONPeerState(t *testing.T) {
 		},
 		"stats":{
 			"votes":"0",
-			"block_parts":"0"}
+			"block_parts":"0",
+			"blob_parts":"0"}
 		}`, string(data))
 }
 
