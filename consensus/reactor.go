@@ -1152,6 +1152,21 @@ func (ps *PeerState) SetHasProposalBlockPart(height int64, round int32, index in
 	ps.PRS.ProposalBlockParts.SetIndex(index, true)
 }
 
+func (ps *PeerState) setHasProposalBlobPart(height int64, round int32, index int) {
+	ps.logger.Debug("setHasProposalBlobPart",
+		"peerH/R",
+		log.NewLazySprintf("%d/%d", ps.PRS.Height, ps.PRS.Round),
+		"H/R",
+		log.NewLazySprintf("%d/%d", height, round),
+		"index", index)
+
+	if ps.PRS.Height != height || ps.PRS.Round != round {
+		return
+	}
+
+	ps.PRS.ProposalBlobParts.SetIndex(index, true)
+}
+
 // PickSendVote picks a vote and sends it to the peer.
 // Returns true if vote was sent.
 func (ps *PeerState) PickSendVote(votes types.VoteSetReader) bool {
