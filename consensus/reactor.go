@@ -573,6 +573,29 @@ OUTER_LOOP:
 			}
 		}
 
+		// Send proposal Blob parts?
+		if rs.ProposalBlobParts.HasHeader(prs.ProposalBlobPartSetHeader) {
+			if index, ok := rs.ProposalBlobParts.BitArray().Sub(prs.ProposalBlobParts.Copy()).PickRandom(); ok {
+				part := rs.ProposalBlobParts.GetPart(index)
+				parts, err := part.ToProto()
+				if err != nil {
+					panic(err)
+				}
+				logger.Debug("Sending blob part", "height", prs.Height, "round", prs.Round)
+				if peer.Send(p2p.Envelope{
+					ChannelID: DataChannel,
+					Message: &cmtcons.BlobPart{
+						Height: rs.Height, // This tells peer that this part applies to us.
+						Round:  rs.Round,  // This tells peer that this part applies to us.
+						Part:   *parts,
+					},
+				}) {
+					ps.setHasProposalBlobPart(prs.Height, prs.Round, index)
+				}
+				continue OUTER_LOOP
+			}
+		}
+
 		// If the peer is on a previous height that we have, help catch up.
 		blockStoreBase := conR.conS.blockStore.Base()
 		if blockStoreBase > 0 && 0 < prs.Height && prs.Height < rs.Height && prs.Height >= blockStoreBase {
