@@ -329,7 +329,10 @@ func (conR *Reactor) Receive(e p2p.Envelope) {
 			conR.Metrics.BlockParts.With("peer_id", string(e.Src.ID())).Add(1)
 			conR.conS.peerMsgQueue <- msgInfo{msg, e.Src.ID()}
 		case *BlobPartMessage:
-			// TODO
+			ps.SetHasProposalBlobPart(msg.Height, msg.Round, int(msg.Part.Index))
+			// Todo: Implement metrics
+			//conR.Metrics.BlobParts.With("peer_id", string(e.Src.ID())).Add(1)
+			conR.conS.peerMsgQueue <- msgInfo{msg, e.Src.ID()}
 		default:
 			conR.Logger.Error(fmt.Sprintf("Unknown message type %v", reflect.TypeOf(msg)))
 		}
@@ -590,7 +593,7 @@ OUTER_LOOP:
 						Part:   *parts,
 					},
 				}) {
-					ps.setHasProposalBlobPart(prs.Height, prs.Round, index)
+					ps.SetHasProposalBlobPart(prs.Height, prs.Round, index)
 				}
 				continue OUTER_LOOP
 			}
@@ -1173,6 +1176,14 @@ func (ps *PeerState) SetHasProposalBlockPart(height int64, round int32, index in
 	}
 
 	ps.PRS.ProposalBlockParts.SetIndex(index, true)
+}
+
+// SetHasProposalBlobPart sets the given blob part index as known for the peer.
+func (ps *PeerState) SetHasProposalBlobPart(height int64, round int32, index int) {
+	ps.mtx.Lock()
+	defer ps.mtx.Unlock()
+
+	ps.setHasProposalBlobPart(height, round, index)
 }
 
 func (ps *PeerState) setHasProposalBlobPart(height int64, round int32, index int) {
