@@ -2184,7 +2184,7 @@ func (cs *State) addProposalBlobPart(msg *BlobPartMessage, peerID p2p.ID) (added
 
 	// Todo: Implement blob configuration
 	// maxBytes := cs.state.ConsensusParams.Blob.MaxBytes
-	//if maxBytes == -1 {
+	// if maxBytes == -1 {
 	//	maxBytes = int64(types.MaxBlockSizeBytes)
 	//}
 	//if cs.ProposalBlockParts.ByteSize() > maxBytes {
