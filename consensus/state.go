@@ -2187,7 +2187,7 @@ func (cs *State) addProposalBlobPart(msg *BlobPartMessage, peerID p2p.ID) (added
 	// if maxBytes == -1 {
 	//	maxBytes = int64(types.MaxBlockSizeBytes)
 	//}
-	//if cs.ProposalBlockParts.ByteSize() > maxBytes {
+	// if cs.ProposalBlockParts.ByteSize() > maxBytes {
 	//	return added, fmt.Errorf("total size of proposal block parts exceeds maximum block bytes (%d > %d)",
 	//		cs.ProposalBlockParts.ByteSize(), maxBytes,
 	//	)
