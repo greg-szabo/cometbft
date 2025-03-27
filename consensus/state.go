@@ -908,7 +908,7 @@ func (cs *State) handleMsg(mi msgInfo) {
 		cs.mtx.Unlock()
 
 		cs.mtx.Lock()
-		if added && cs.ProposalBlockParts.IsComplete() && cs.ProposalBlobParts.IsComplete() {
+		if added && cs.ProposalBlockParts.IsComplete() && ((cs.ProposalBlobParts != nil && cs.ProposalBlobParts.IsComplete()) || cs.ProposalBlobParts == nil) {
 			cs.handleCompleteProposal(msg.Height)
 		}
 		if added {
@@ -2033,6 +2033,10 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 		return ErrProposalTooManyParts
 	}
 
+	if int64(proposal.BlobID.PartSetHeader.Total) > (maxBytes-1)/int64(types.PartSizeBytes)+1 {
+		return ErrProposalTooManyParts
+	}
+
 	proposal.Signature = p.Signature
 	cs.Proposal = proposal
 	// We don't update cs.ProposalBlockParts if it is already set.
@@ -2040,6 +2044,9 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	// TODO: We can check if Proposal is for a different block as this is a sign of misbehavior!
 	if cs.ProposalBlockParts == nil {
 		cs.ProposalBlockParts = types.NewPartSetFromHeader(proposal.BlockID.PartSetHeader)
+	}
+	if cs.ProposalBlobParts == nil && !proposal.BlobID.IsNil() {
+		cs.ProposalBlobParts = types.NewPartSetFromHeader(proposal.BlobID.PartSetHeader)
 	}
 
 	cs.Logger.Info("received proposal", "proposal", proposal, "proposer", pubKey.Address())
@@ -2121,7 +2128,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		cs.Logger.Info("received complete proposal block", "height", cs.ProposalBlock.Height, "hash", cs.ProposalBlock.Hash())
 
 		// Both blocks and blobs need to be complete to fire the event.
-		if cs.ProposalBlobParts.IsComplete() {
+		if cs.ProposalBlobParts == nil || (cs.ProposalBlobParts != nil && cs.ProposalBlobParts.IsComplete()) {
 			if err := cs.eventBus.PublishEventCompleteProposal(cs.CompleteProposalEvent()); err != nil {
 				cs.Logger.Error("Failed publishing event complete proposal", "err", err)
 			}
