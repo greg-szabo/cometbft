@@ -2125,7 +2125,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		cs.Logger.Info("received complete proposal block", "height", cs.ProposalBlock.Height, "hash", cs.ProposalBlock.Hash())
 
 		// Both blocks and blobs need to be complete to fire the event.
-		if cs.Proposal.BlobID.IsNil() || cs.ProposalBlob != nil {
+		if cs.Proposal.BlobID.IsNil() || cs.ProposalBlobParts.IsComplete() {
 			if err := cs.eventBus.PublishEventCompleteProposal(cs.CompleteProposalEvent()); err != nil {
 				cs.Logger.Error("Failed publishing event complete proposal", "err", err)
 			}
