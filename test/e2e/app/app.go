@@ -127,7 +127,7 @@ func DefaultConfig(dir string) *Config {
 // 1 - blob is exactly 8 bytes long and contains the height truncated into a byte 8 times
 // 2 - blob is empty ([]byte{})
 // 3 - blob is variable length string that contains "BLOBXXX" where XXX is height multiplied by 0x80 in hex
-// 4 - blob is exactly MaxBlockSizeBytes long and contains height truncated into two bytes repeated
+// 4 - blob is exactly MaxBlockSizeBytes long and contains height truncated into two bytes repeated.
 func blobOracle(height int64) []byte {
 	switch height % 5 {
 	case 1:
@@ -278,10 +278,8 @@ func (app *Application) FinalizeBlock(_ context.Context, req *abci.RequestFinali
 	// Verify blob. The blob should be in the cache.
 	if blob, ok := app.blobCache[req.Height]; !ok {
 		panic(fmt.Errorf("blob for height %d not found in cache", req.Height))
-	} else {
-		if !VerifyBlob(req.Height, blob) {
-			panic(fmt.Errorf("blob verification failed for height %d", req.Height))
-		}
+	} else if !VerifyBlob(req.Height, blob) {
+		panic(fmt.Errorf("blob verification failed for height %d", req.Height))
 	}
 	// This is a short-term cache so we delete the entry after we received it.
 	delete(app.blobCache, req.Height)
