@@ -160,6 +160,10 @@ func (blockExec *BlockExecutor) CreateProposalBlock(
 		preparedBlock = state.MakeBlock(height, txl, commit, evidence, proposerAddr)
 		blob          = rpp.Blob
 	)
+
+	if len(blob) > types.MaxBlobSizeBytes {
+		return nil, nil, fmt.Errorf("blob size %d exceeds limit MaxBlobSizeBytes=%d", len(blob), types.MaxBlobSizeBytes)
+	}
 	return preparedBlock, blob, nil
 }
 

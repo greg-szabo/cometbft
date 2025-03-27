@@ -2074,7 +2074,9 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 		return ErrProposalTooManyParts
 	}
 
-	if int64(proposal.BlobID.PartSetHeader.Total) > (maxBytes-1)/int64(types.BlockPartSizeBytes)+1 {
+	// Validate the proposed blob size, derived from its PartSetHeader
+	maxBlobBytes := int64(types.MaxBlobSizeBytes)
+	if int64(proposal.BlobID.PartSetHeader.Total) > (maxBlobBytes-1)/int64(types.BlobPartSizeBytes)+1 {
 		return ErrProposalTooManyParts
 	}
 
@@ -2230,16 +2232,12 @@ func (cs *State) addProposalBlobPart(msg *BlobPartMessage, peerID p2p.ID) (added
 	cs.Logger.Debug("Receive blob part", "height", height, "round", round,
 		"index", part.Index, "count", count, "total", total, "from", peerID)
 
-	// Todo: Implement blob configuration
-	// maxBytes := cs.state.ConsensusParams.Blob.MaxBytes
-	// if maxBytes == -1 {
-	//	maxBytes = int64(types.MaxBlockSizeBytes)
-	//}
-	// if cs.ProposalBlockParts.ByteSize() > maxBytes {
-	//	return added, fmt.Errorf("total size of proposal block parts exceeds maximum block bytes (%d > %d)",
-	//		cs.ProposalBlockParts.ByteSize(), maxBytes,
-	//	)
-	//}
+	maxBlobBytes := int64(types.MaxBlobSizeBytes)
+	if cs.ProposalBlobParts.ByteSize() > maxBlobBytes {
+		return added, fmt.Errorf("total size of proposal blob parts exceeds maximum blob bytes (%d > %d)",
+			cs.ProposalBlobParts.ByteSize(), maxBlobBytes,
+		)
+	}
 	if added && cs.ProposalBlobParts.IsComplete() {
 		blob, err := io.ReadAll(cs.ProposalBlobParts.GetReader())
 		if err != nil {
