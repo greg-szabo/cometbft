@@ -224,6 +224,24 @@ func startTestRound(cs *State, height int64, round int32) {
 	cs.startRoutines(0)
 }
 
+func createProposalBlockWithTimeAndBlob(t *testing.T, cs *State, time time.Time) (*types.Block, *types.PartSet, types.BlockID, types.Blob) {
+	t.Helper()
+	block, blob, err := cs.createProposalBlock(context.Background())
+	if !time.IsZero() {
+		block.Time = cmttime.Canonical(time)
+	}
+	assert.NoError(t, err)
+	blockParts, err := block.MakePartSet(types.BlockPartSizeBytes)
+	assert.NoError(t, err)
+	blockID := types.BlockID{Hash: block.Hash(), PartSetHeader: blockParts.Header()}
+	return block, blockParts, blockID, blob
+}
+
+func createProposalBlockAndBlob(t *testing.T, cs *State) (*types.Block, *types.PartSet, types.BlockID, types.Blob) {
+	t.Helper()
+	return createProposalBlockWithTimeAndBlob(t, cs, time.Time{})
+}
+
 //nolint:unused
 func createProposalBlockWithTime(t *testing.T, cs *State, time time.Time) (*types.Block, *types.PartSet, types.BlockID) {
 	t.Helper()
@@ -486,6 +504,12 @@ func randState(nValidators int) (*State, []*validatorStub) {
 	return randStateWithApp(nValidators, kvstore.NewInMemoryApplication())
 }
 
+func randStateWithBlob(nValidators int) (*State, []*validatorStub) {
+	app := kvstore.NewInMemoryApplication()
+	app.SetGenerateBlobs()
+	return randStateWithApp(nValidators, app)
+}
+
 func randStateWithAppWithHeight(
 	nValidators int,
 	app abci.Application,
@@ -672,7 +696,7 @@ func ensureNewUnlock(unlockCh <-chan cmtpubsub.Message, height int64, round int3
 		"Timeout expired while waiting for NewUnlock event")
 }
 
-func ensureProposal(proposalCh <-chan cmtpubsub.Message, height int64, round int32, propID types.BlockID) {
+func ensureProposal(proposalCh <-chan cmtpubsub.Message, height int64, round int32, propID types.BlockID, blobID *types.BlobID) {
 	select {
 	case <-time.After(ensureTimeout):
 		panic("Timeout expired while waiting for NewProposal event")
@@ -690,6 +714,11 @@ func ensureProposal(proposalCh <-chan cmtpubsub.Message, height int64, round int
 		}
 		if !proposalEvent.BlockID.Equals(propID) {
 			panic(fmt.Sprintf("Proposed block does not match expected block (%v != %v)", proposalEvent.BlockID, propID))
+		}
+		if blobID != nil {
+			if !bytes.Equal(proposalEvent.BlobID.Hash, blobID.Hash) {
+				panic(fmt.Sprintf("Proposed blob does not match expected block (%v != %v)", proposalEvent.BlockID, propID))
+			}
 		}
 	}
 }

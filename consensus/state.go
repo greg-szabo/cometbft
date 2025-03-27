@@ -509,6 +509,47 @@ func (cs *State) AddProposalBlockPart(height int64, round int32, part *types.Par
 	return nil
 }
 
+// AddProposalBlockPart inputs a part of the proposal block.
+func (cs *State) AddProposalBlobPart(height int64, round int32, part *types.Part, peerID p2p.ID) error {
+	if peerID == "" {
+		cs.internalMsgQueue <- msgInfo{&BlobPartMessage{height, round, part}, ""}
+	} else {
+		cs.peerMsgQueue <- msgInfo{&BlobPartMessage{height, round, part}, peerID}
+	}
+
+	// TODO: wait for event?!
+	return nil
+}
+
+// SetProposalBlockAndBlob inputs the proposal and all block parts.
+func (cs *State) SetProposalBlobAndBlock(
+	proposal *types.Proposal,
+	blockParts *types.PartSet,
+	blobParts *types.PartSet,
+	peerID p2p.ID,
+) error {
+	// TODO: Since the block parameter is not used, we should instead expose just a SetProposal method.
+	if err := cs.SetProposal(proposal, peerID); err != nil {
+		return err
+	}
+
+	for i := 0; i < int(blockParts.Total()); i++ {
+		part := blockParts.GetPart(i)
+		if err := cs.AddProposalBlockPart(proposal.Height, proposal.Round, part, peerID); err != nil {
+			return err
+		}
+	}
+
+	for i := 0; i < int(blobParts.Total()); i++ {
+		part := blobParts.GetPart(i)
+		if err := cs.AddProposalBlobPart(proposal.Height, proposal.Round, part, peerID); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // SetProposalAndBlock inputs the proposal and all block parts.
 func (cs *State) SetProposalAndBlock(
 	proposal *types.Proposal,
