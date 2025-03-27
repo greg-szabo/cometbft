@@ -19,7 +19,7 @@ func TestBasicPartSet(t *testing.T) {
 	// Construct random data of size partSize * 100
 	nParts := 100
 	data := cmtrand.Bytes(testPartSize * nParts)
-	partSet := NewPartSetFromData(data, testPartSize)
+	partSet := NewPartSetFromData(data, testPartSize, PartSetTypeBlock)
 
 	assert.NotEmpty(t, partSet.Hash())
 	assert.EqualValues(t, nParts, partSet.Total())
@@ -30,7 +30,7 @@ func TestBasicPartSet(t *testing.T) {
 	assert.EqualValues(t, testPartSize*nParts, partSet.ByteSize())
 
 	// Test adding parts to a new partSet.
-	partSet2 := NewPartSetFromHeader(partSet.Header())
+	partSet2 := NewPartSetFromHeader(partSet.Header(), PartSetTypeBlock)
 
 	assert.True(t, partSet2.HasHeader(partSet.Header()))
 	for i := 0; i < int(partSet.Total()); i++ {
@@ -66,10 +66,10 @@ func TestBasicPartSet(t *testing.T) {
 func TestWrongProof(t *testing.T) {
 	// Construct random data of size partSize * 100
 	data := cmtrand.Bytes(testPartSize * 100)
-	partSet := NewPartSetFromData(data, testPartSize)
+	partSet := NewPartSetFromData(data, testPartSize, PartSetTypeBlock)
 
 	// Test adding a part with wrong data.
-	partSet2 := NewPartSetFromHeader(partSet.Header())
+	partSet2 := NewPartSetFromHeader(partSet.Header(), PartSetTypeBlock)
 
 	// Test adding a part with wrong trail.
 	part := partSet.GetPart(0)
@@ -117,7 +117,7 @@ func TestPartSetHeaderValidateBasic(t *testing.T) {
 		tc := tc
 		t.Run(tc.testName, func(t *testing.T) {
 			data := cmtrand.Bytes(testPartSize * 100)
-			ps := NewPartSetFromData(data, testPartSize)
+			ps := NewPartSetFromData(data, testPartSize, PartSetTypeBlock)
 			psHeader := ps.Header()
 			tc.malleatePartSetHeader(&psHeader)
 			assert.Equal(t, tc.expectErr, psHeader.ValidateBasic() != nil, "Validate Basic had an unexpected result")
@@ -162,7 +162,7 @@ func TestPart_ValidateBasic(t *testing.T) {
 		tc := tc
 		t.Run(tc.testName, func(t *testing.T) {
 			data := cmtrand.Bytes(testPartSize * 100)
-			ps := NewPartSetFromData(data, testPartSize)
+			ps := NewPartSetFromData(data, testPartSize, PartSetTypeBlock)
 			part := ps.GetPart(0)
 			tc.malleatePart(part)
 			assert.Equal(t, tc.expectErr, part.ValidateBasic(PartSetTypeBlock) != nil, "Validate Basic had an unexpected result")

@@ -2480,14 +2480,14 @@ func TestStateOutputsBlockPartsStats(t *testing.T) {
 	peer := p2pmock.NewPeer(nil)
 
 	// 1) new block part
-	parts := types.NewPartSetFromData(cmtrand.Bytes(100), 10)
+	parts := types.NewPartSetFromData(cmtrand.Bytes(100), 10, types.PartSetTypeBlock)
 	msg := &BlockPartMessage{
 		Height: 1,
 		Round:  0,
 		Part:   parts.GetPart(0),
 	}
 
-	cs.ProposalBlockParts = types.NewPartSetFromHeader(parts.Header())
+	cs.ProposalBlockParts = types.NewPartSetFromHeader(parts.Header(), types.PartSetTypeBlock)
 	cs.handleMsg(msgInfo{msg, peer.ID()})
 
 	statsMessage := <-cs.statsMsgQueue

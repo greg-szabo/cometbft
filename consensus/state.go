@@ -1282,7 +1282,7 @@ func (cs *State) defaultDecideProposal(height int64, round int32) {
 	// Not all blocks have a corresponding blob. If that's the case, we don't create
 	// blob parts and we don't set the blob ID.
 	if !blob.IsNil() {
-		blobParts = types.NewPartSetFromData(blob, types.BlockPartSizeBytes)
+		blobParts = types.NewPartSetFromData(blob, types.BlockPartSizeBytes, types.PartSetTypeBlob)
 		propBlobID = types.BlobID{
 			Hash:          blob.Hash(),
 			PartSetHeader: blobParts.Header(),
@@ -1649,7 +1649,7 @@ func (cs *State) enterPrecommit(height int64, round int32) {
 
 	if !cs.ProposalBlockParts.HasHeader(blockID.PartSetHeader) {
 		cs.ProposalBlock = nil
-		cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartSetHeader)
+		cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartSetHeader, types.PartSetTypeBlock)
 	}
 
 	if err := cs.eventBus.PublishEventUnlock(cs.RoundStateEvent()); err != nil {
@@ -1743,7 +1743,7 @@ func (cs *State) enterCommit(height int64, commitRound int32) {
 			// We're getting the wrong block.
 			// Set up ProposalBlockParts and keep waiting.
 			cs.ProposalBlock = nil
-			cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartSetHeader)
+			cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartSetHeader, types.PartSetTypeBlock)
 
 			if err := cs.eventBus.PublishEventValidBlock(cs.RoundStateEvent()); err != nil {
 				logger.Error("failed publishing valid block", "err", err)
@@ -2043,10 +2043,10 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	// This happens if we're already in cstypes.RoundStepCommit or if there is a valid block in the current round.
 	// TODO: We can check if Proposal is for a different block as this is a sign of misbehavior!
 	if cs.ProposalBlockParts == nil {
-		cs.ProposalBlockParts = types.NewPartSetFromHeader(proposal.BlockID.PartSetHeader)
+		cs.ProposalBlockParts = types.NewPartSetFromHeader(proposal.BlockID.PartSetHeader, types.PartSetTypeBlock)
 	}
 	if cs.ProposalBlobParts == nil && !proposal.BlobID.IsNil() {
-		cs.ProposalBlobParts = types.NewPartSetFromHeader(proposal.BlobID.PartSetHeader)
+		cs.ProposalBlobParts = types.NewPartSetFromHeader(proposal.BlobID.PartSetHeader, types.PartSetTypeBlob)
 	}
 
 	cs.Logger.Info("received proposal", "proposal", proposal, "proposer", pubKey.Address())
@@ -2500,7 +2500,7 @@ func (cs *State) addVote(vote *types.Vote, peerID p2p.ID) (added bool, err error
 				}
 
 				if !cs.ProposalBlockParts.HasHeader(blockID.PartSetHeader) {
-					cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartSetHeader)
+					cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartSetHeader, types.PartSetTypeBlock)
 				}
 
 				cs.evsw.FireEvent(types.EventValidBlock, &cs.RoundState)
