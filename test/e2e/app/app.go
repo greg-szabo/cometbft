@@ -48,6 +48,8 @@ type Application struct {
 	cfg             *Config
 	restoreSnapshot *abci.Snapshot
 	restoreChunks   [][]byte
+	// BlobCache is short-term storage for blobs received.
+	blobCache map[int64][]byte
 }
 
 // Config allows for the setting of high level parameters for running the e2e Application
@@ -118,6 +120,41 @@ func DefaultConfig(dir string) *Config {
 	}
 }
 
+// blobOracle can tell you the expected blob on a specific height.
+// It can be used to add blobs to proposals or during testing, to do verification of blob value.
+// Blob properties: height modulo 5
+// 0 - blob is nil
+// 1 - blob is exactly 8 bytes long and contains the height truncated into a byte 8 times
+// 2 - blob is empty ([]byte{})
+// 3 - blob is variable length string that contains "BLOBXXX" where XXX is height multiplied by 0x80 in hex
+// 4 - blob is exactly MaxBlockSizeBytes long and contains height truncated into two bytes repeated
+func blobOracle(height int64) []byte {
+	switch height % 5 {
+	case 1:
+		truncatedHeight := byte(height % 0x100)
+		data := bytes.Repeat([]byte{truncatedHeight}, 8)
+		return data
+	case 2:
+		return []byte{}
+	case 3:
+		return []byte(fmt.Sprintf("BLOB%x", height*0x80))
+	case 4:
+		truncatedHeight := byte(height % 0x10000)
+		data := bytes.Repeat([]byte{truncatedHeight}, cmttypes.MaxBlockSizeBytes/4)
+		return data
+	}
+	return nil
+}
+
+func NewBlob(height int64) []byte {
+	return blobOracle(height)
+}
+
+func VerifyBlob(height int64, blob []byte) bool {
+	expected := blobOracle(height)
+	return bytes.Equal(expected, blob)
+}
+
 // NewApplication creates the application.
 func NewApplication(cfg *Config) (*Application, error) {
 	state, err := NewState(cfg.Dir, cfg.PersistInterval)
@@ -128,11 +165,13 @@ func NewApplication(cfg *Config) (*Application, error) {
 	if err != nil {
 		return nil, err
 	}
+	blobCache := make(map[int64][]byte)
 	return &Application{
 		logger:    log.NewTMLogger(log.NewSyncWriter(os.Stdout)),
 		state:     state,
 		snapshots: snapshots,
 		cfg:       cfg,
+		blobCache: blobCache,
 	}, nil
 }
 
@@ -234,6 +273,20 @@ func (app *Application) FinalizeBlock(_ context.Context, req *abci.RequestFinali
 		app.state.Set(key, value)
 
 		txs[i] = &abci.ExecTxResult{Code: kvstore.CodeTypeOK}
+	}
+
+	// Verify blob. The blob should be in the cache.
+	if blob, ok := app.blobCache[req.Height]; !ok {
+		panic(fmt.Errorf("blob for height %d not found in cache", req.Height))
+	} else {
+		if !VerifyBlob(req.Height, blob) {
+			panic(fmt.Errorf("blob verification failed for height %d", req.Height))
+		}
+	}
+	// This is a short-term cache so we delete the entry after we received it.
+	delete(app.blobCache, req.Height)
+	if len(app.blobCache) != 0 {
+		panic(fmt.Sprintf("blob cache should be empty, but it contains %d items", len(app.blobCache)))
 	}
 
 	for _, ev := range req.Misbehavior {
@@ -432,12 +485,14 @@ func (app *Application) PrepareProposal(
 		// Coherence: No need to call parseTx, as the check is stateless and has been performed by CheckTx
 		txs = append(txs, tx)
 	}
+	// Generate blob for the current height.
+	blob := NewBlob(req.Height)
 
 	if app.cfg.PrepareProposalDelay != 0 {
 		time.Sleep(app.cfg.PrepareProposalDelay)
 	}
 
-	return &abci.ResponsePrepareProposal{Txs: txs}, nil
+	return &abci.ResponsePrepareProposal{Txs: txs, Blob: blob}, nil
 }
 
 // ProcessProposal implements part of the Application interface.
@@ -465,6 +520,13 @@ func (app *Application) ProcessProposal(_ context.Context, req *abci.RequestProc
 			return &abci.ResponseProcessProposal{Status: abci.ResponseProcessProposal_REJECT}, nil
 		}
 	}
+
+	// Blob verification
+	if !VerifyBlob(req.Height, req.Blob) {
+		app.logger.Error("invalid blob, rejecting proposal", "received height", req.Height, "received", req.Blob)
+		return &abci.ResponseProcessProposal{Status: abci.ResponseProcessProposal_REJECT}, nil
+	}
+	app.blobCache[req.Height] = req.Blob
 
 	if app.cfg.ProcessProposalDelay != 0 {
 		time.Sleep(app.cfg.ProcessProposalDelay)
