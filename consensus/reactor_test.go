@@ -417,6 +417,30 @@ func TestSwitchToConsensusVoteExtensions(t *testing.T) {
 	}
 }
 
+func TestReactorRecordsVotesAndBlockPartsAndBlobParts(t *testing.T) {
+	n := 4
+
+	css, _, _, cleanup := randConsensusNetWithPeers(t, n, n, "consensus_reactor_test", newMockTickerFunc(true), newPersistentKVStoreWithPathAndBlob)
+
+	defer cleanup()
+	reactors, blocksSubs, eventBuses := startConsensusNet(t, css, n)
+	defer stopConsensusNet(log.TestingLogger(), reactors, eventBuses)
+
+	// wait till everyone makes the first new block
+	timeoutWaitGroup(n, func(j int) {
+		<-blocksSubs[j].Out()
+	})
+
+	// Get peer
+	peer := reactors[1].Switch.Peers().Copy()[0]
+	// Get peer state
+	ps := peer.Get(types.PeerStateKey).(*PeerState)
+
+	assert.Greater(t, ps.VotesSent(), 0, "number of votes sent should have increased")
+	assert.Greater(t, ps.BlockPartsSent(), 0, "number of votes sent should have increased")
+	assert.Greater(t, ps.BlobPartsSent(), 0, "number of votes sent should have increased")
+}
+
 // Test we record stats about votes and block parts from other peers.
 func TestReactorRecordsVotesAndBlockParts(t *testing.T) {
 	N := 4
