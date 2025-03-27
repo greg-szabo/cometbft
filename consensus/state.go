@@ -2200,18 +2200,7 @@ func (cs *State) addProposalBlobPart(msg *BlobPartMessage, peerID p2p.ID) (added
 	//	)
 	//}
 	if added && cs.ProposalBlobParts.IsComplete() {
-		bz, err := io.ReadAll(cs.ProposalBlobParts.GetReader())
-		if err != nil {
-			return added, err
-		}
-
-		pbb := new(cmtproto.Blob)
-		err = proto.Unmarshal(bz, pbb)
-		if err != nil {
-			return added, err
-		}
-
-		blob, err := types.BlobFromProto(pbb)
+		blob, err := io.ReadAll(cs.ProposalBlobParts.GetReader())
 		if err != nil {
 			return added, err
 		}
