@@ -234,7 +234,7 @@ func TestStateBadProposal(t *testing.T) {
 	startTestRound(cs1, height, round)
 
 	// wait for proposal
-	ensureProposal(proposalCh, height, round, blockID)
+	ensureProposal(proposalCh, height, round, blockID, &proposal.BlobID)
 
 	// wait for prevote
 	ensurePrevote(voteCh, height, round)
