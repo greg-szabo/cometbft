@@ -213,7 +213,7 @@ func TestByzantinePrevoteEquivocation(t *testing.T) {
 		block, _, err := lazyProposer.blockExec.CreateProposalBlock(
 			ctx, lazyProposer.Height, lazyProposer.state, extCommit, proposerAddr)
 		require.NoError(t, err)
-		blockParts, err := block.MakePartSet(types.PartSizeBytes)
+		blockParts, err := block.MakePartSet(types.BlockPartSizeBytes)
 		require.NoError(t, err)
 
 		// Flush the WAL. Otherwise, we may not recompute the same proposal to sign,
@@ -463,7 +463,7 @@ func byzantineDecideProposalFunc(ctx context.Context, t *testing.T, height int64
 	// Create a new proposal block from state/txs from the mempool.
 	block1, _, err := cs.createProposalBlock(ctx)
 	require.NoError(t, err)
-	blockParts1, err := block1.MakePartSet(types.PartSizeBytes)
+	blockParts1, err := block1.MakePartSet(types.BlockPartSizeBytes)
 	require.NoError(t, err)
 	polRound, propBlockID := cs.ValidRound, types.BlockID{Hash: block1.Hash(), PartSetHeader: blockParts1.Header()}
 	proposal1 := types.NewProposal(height, round, polRound, propBlockID, types.BlobID{})
@@ -480,7 +480,7 @@ func byzantineDecideProposalFunc(ctx context.Context, t *testing.T, height int64
 	// Create a new proposal block from state/txs from the mempool.
 	block2, _, err := cs.createProposalBlock(ctx)
 	require.NoError(t, err)
-	blockParts2, err := block2.MakePartSet(types.PartSizeBytes)
+	blockParts2, err := block2.MakePartSet(types.BlockPartSizeBytes)
 	require.NoError(t, err)
 	polRound, propBlockID = cs.ValidRound, types.BlockID{Hash: block2.Hash(), PartSetHeader: blockParts2.Header()}
 	proposal2 := types.NewProposal(height, round, polRound, propBlockID, types.BlobID{})

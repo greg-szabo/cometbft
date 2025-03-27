@@ -232,7 +232,7 @@ func createProposalBlockWithTime(t *testing.T, cs *State, time time.Time) (*type
 		block.Time = cmttime.Canonical(time)
 	}
 	assert.NoError(t, err)
-	blockParts, err := block.MakePartSet(types.PartSizeBytes)
+	blockParts, err := block.MakePartSet(types.BlockPartSizeBytes)
 	assert.NoError(t, err)
 	blockID := types.BlockID{Hash: block.Hash(), PartSetHeader: blockParts.Header()}
 	return block, blockParts, blockID
@@ -256,7 +256,7 @@ func decideProposal(
 	cs1.mtx.Lock()
 	block, _, err := cs1.createProposalBlock(ctx)
 	require.NoError(t, err)
-	blockParts, err := block.MakePartSet(types.PartSizeBytes)
+	blockParts, err := block.MakePartSet(types.BlockPartSizeBytes)
 	require.NoError(t, err)
 	validRound := cs1.ValidRound
 	chainID := cs1.state.ChainID

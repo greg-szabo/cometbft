@@ -117,7 +117,7 @@ func TestRollbackHard(t *testing.T) {
 		LastCommit: &types.Commit{Height: height - 1},
 	}
 
-	partSet, err := block.MakePartSet(types.PartSizeBytes)
+	partSet, err := block.MakePartSet(types.BlockPartSizeBytes)
 	require.NoError(t, err)
 	blockStore.SaveBlock(block, partSet, &types.Commit{Height: block.Height})
 
@@ -159,7 +159,7 @@ func TestRollbackHard(t *testing.T) {
 		LastCommit: &types.Commit{Height: currState.LastBlockHeight},
 	}
 
-	nextPartSet, err := nextBlock.MakePartSet(types.PartSizeBytes)
+	nextPartSet, err := nextBlock.MakePartSet(types.BlockPartSizeBytes)
 	require.NoError(t, err)
 	blockStore.SaveBlock(nextBlock, nextPartSet, &types.Commit{Height: nextBlock.Height})
 

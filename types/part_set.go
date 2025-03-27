@@ -42,13 +42,24 @@ type Part struct {
 }
 
 // ValidateBasic performs basic validation.
-func (part *Part) ValidateBasic() error {
-	if len(part.Bytes) > int(PartSizeBytes) {
-		return ErrPartTooBig
-	}
-	// All parts except the last one should have the same constant size.
-	if int64(part.Index) < part.Proof.Total-1 && len(part.Bytes) != int(PartSizeBytes) {
-		return ErrPartInvalidSize
+func (part *Part) ValidateBasic(partSetType PartSetType) error {
+	switch partSetType {
+	case PartSetTypeBlock:
+		if len(part.Bytes) > int(BlockPartSizeBytes) {
+			return ErrPartTooBig
+		}
+		// All parts except the last one should have the same constant size.
+		if int64(part.Index) < part.Proof.Total-1 && len(part.Bytes) != int(BlockPartSizeBytes) {
+			return ErrPartInvalidSize
+		}
+	case PartSetTypeBlob:
+		if len(part.Bytes) > int(BlobPartSizeBytes) {
+			return ErrPartTooBig
+		}
+		// All parts except the last one should have the same constant size.
+		if int64(part.Index) < part.Proof.Total-1 && len(part.Bytes) != int(BlobPartSizeBytes) {
+			return ErrPartInvalidSize
+		}
 	}
 	if int64(part.Index) != part.Proof.Index {
 		return ErrInvalidPart{Reason: fmt.Errorf("part index %d != proof index %d", part.Index, part.Proof.Index)}
@@ -94,7 +105,7 @@ func (part *Part) ToProto() (*cmtproto.Part, error) {
 	return pb, nil
 }
 
-func PartFromProto(pb *cmtproto.Part) (*Part, error) {
+func PartFromProto(pb *cmtproto.Part, partSetType PartSetType) (*Part, error) {
 	if pb == nil {
 		return nil, errors.New("nil part")
 	}
@@ -108,7 +119,7 @@ func PartFromProto(pb *cmtproto.Part) (*Part, error) {
 	part.Bytes = pb.Bytes
 	part.Proof = *proof
 
-	return part, part.ValidateBasic()
+	return part, part.ValidateBasic(partSetType)
 }
 
 //-------------------------------------
@@ -175,9 +186,19 @@ func ProtoPartSetHeaderIsZero(ppsh *cmtproto.PartSetHeader) bool {
 
 //-------------------------------------
 
+type PartSetType int
+
+const (
+	// PartSetTypeBlock indicates the PartSet contains block data.
+	PartSetTypeBlock PartSetType = iota
+	// PartSetTypeBlob indicates the PartSet contains blob data. It requires different validation.
+	PartSetTypeBlob
+)
+
 type PartSet struct {
-	total uint32
-	hash  []byte
+	partSetType PartSetType
+	total       uint32
+	hash        []byte
 
 	mtx           cmtsync.Mutex
 	parts         []*Part
