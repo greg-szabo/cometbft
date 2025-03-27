@@ -908,7 +908,7 @@ func (cs *State) handleMsg(mi msgInfo) {
 		cs.mtx.Unlock()
 
 		cs.mtx.Lock()
-		if added && cs.ProposalBlockParts.IsComplete() && (cs.Proposal.BlobID.IsNil() || cs.ProposalBlobParts.IsComplete()) {
+		if added && cs.ProposalBlockParts.IsComplete() && (cs.Proposal.BlobID.IsNil() || cs.ProposalBlob != nil) {
 			cs.handleCompleteProposal(msg.Height)
 		}
 		if added {
@@ -2042,7 +2042,7 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 		cs.ProposalBlockParts = types.NewPartSetFromHeader(proposal.BlockID.PartSetHeader)
 	}
 
-	if !cs.Proposal.BlobID.IsNil() && cs.ProposalBlobParts.IsComplete() {
+	if !cs.Proposal.BlobID.IsNil() && cs.ProposalBlobParts == nil {
 		cs.ProposalBlobParts = types.NewPartSetFromHeader(proposal.BlobID.PartSetHeader)
 	}
 
