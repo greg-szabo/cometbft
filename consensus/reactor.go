@@ -1151,6 +1151,11 @@ func (ps *PeerState) SetHasProposal(proposal *types.Proposal) {
 	ps.PRS.ProposalBlockParts = bits.NewBitArray(int(proposal.BlockID.PartSetHeader.Total))
 	ps.PRS.ProposalPOLRound = proposal.POLRound
 	ps.PRS.ProposalPOL = nil // Nil until ProposalPOLMessage received.
+	if !proposal.BlobID.IsNil() {
+		ps.PRS.ProposalBlobPartSetHeader = proposal.BlobID.PartSetHeader
+		ps.PRS.ProposalBlobParts = bits.NewBitArray(int(proposal.BlobID.PartSetHeader.Total))
+	}
+
 }
 
 // InitProposalBlockParts initializes the peer's proposal block parts header and bit array.
@@ -1460,6 +1465,8 @@ func (ps *PeerState) ApplyNewRoundStepMessage(msg *NewRoundStepMessage) {
 		ps.PRS.Proposal = false
 		ps.PRS.ProposalBlockPartSetHeader = types.PartSetHeader{}
 		ps.PRS.ProposalBlockParts = nil
+		ps.PRS.ProposalBlobPartSetHeader = types.PartSetHeader{}
+		ps.PRS.ProposalBlobParts = nil
 		ps.PRS.ProposalPOLRound = -1
 		ps.PRS.ProposalPOL = nil
 		// We'll update the BitArray capacity later.
