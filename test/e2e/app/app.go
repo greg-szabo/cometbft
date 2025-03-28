@@ -127,7 +127,7 @@ func DefaultConfig(dir string) *Config {
 // 1 - blob is exactly 8 bytes long and contains the height truncated into a byte 8 times
 // 2 - blob is empty ([]byte{})
 // 3 - blob is variable length string that contains "BLOBXXX" where XXX is height multiplied by 0x80 in hex
-// 4 - blob is exactly MaxBlobSizeBytes long and contains height truncated into two bytes repeated.
+// 4 - blob is half the size of MaxBlobSizeBytes and contains height truncated into two bytes repeated.
 func blobOracle(height int64) []byte {
 	switch height % 5 {
 	case 1:
@@ -140,7 +140,7 @@ func blobOracle(height int64) []byte {
 		return []byte(fmt.Sprintf("BLOB%x", height*0x80))
 	case 4:
 		truncatedHeight := byte(height % 0x10000)
-		data := bytes.Repeat([]byte{truncatedHeight}, cmttypes.MaxBlobSizeBytes/4)
+		data := bytes.Repeat([]byte{truncatedHeight}, cmttypes.MaxBlobSizeBytes/2/4)
 		return data
 	}
 	return nil
