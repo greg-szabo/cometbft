@@ -122,14 +122,14 @@ func DefaultConfig(dir string) *Config {
 
 // blobOracle can tell you the expected blob on a specific height.
 // It can be used to add blobs to proposals or during testing, to do verification of blob value.
-// Blob properties: height modulo 5
+// Blob properties: height modulo 4
 // 0 - blob is nil
 // 1 - blob is exactly 8 bytes long and contains the height truncated into a byte 8 times
 // 2 - blob is empty ([]byte{})
 // 3 - blob is variable length string that contains "BLOBXXX" where XXX is height multiplied by 0x80 in hex
-// 4 - blob is half the size of MaxBlobSizeBytes and contains height truncated into two bytes repeated.
+// //4 - blob is half the size of MaxBlobSizeBytes and contains height truncated into two bytes repeated.
 func blobOracle(height int64) []byte {
-	switch height % 5 {
+	switch height % 4 {
 	case 1:
 		truncatedHeight := byte(height % 0x100)
 		data := bytes.Repeat([]byte{truncatedHeight}, 8)
@@ -138,10 +138,10 @@ func blobOracle(height int64) []byte {
 		return []byte{}
 	case 3:
 		return []byte(fmt.Sprintf("BLOB%x", height*0x80))
-	case 4:
-		truncatedHeight := byte(height % 0x10000)
-		data := bytes.Repeat([]byte{truncatedHeight}, cmttypes.MaxBlobSizeBytes/2/4)
-		return data
+		// case 4:
+		//	truncatedHeight := byte(height % 0x10000)
+		//	data := bytes.Repeat([]byte{truncatedHeight}, cmttypes.MaxBlobSizeBytes/2/4)
+		//	return data
 	}
 	return nil
 }
