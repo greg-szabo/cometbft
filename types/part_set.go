@@ -360,6 +360,9 @@ func (ps *PartSet) GetPart(index int) *Part {
 }
 
 func (ps *PartSet) IsComplete() bool {
+	if ps == nil {
+		return true
+	}
 	return ps.count == ps.total
 }
 

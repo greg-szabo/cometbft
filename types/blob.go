@@ -74,6 +74,7 @@ func (b BlobID) IsNil() bool {
 }
 
 // IsComplete returns true if this is a valid BlobID of a non-nil blob.
+// Returns false, if the blobID isn't initialized (there is no blob).
 func (b BlobID) IsComplete() bool {
 	return len(b.Hash) == tmhash.Size &&
 		b.PartSetHeader.Total > 0 &&
