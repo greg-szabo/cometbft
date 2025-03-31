@@ -949,7 +949,7 @@ func (cs *State) handleMsg(mi msgInfo) {
 		cs.mtx.Unlock()
 
 		cs.mtx.Lock()
-		if added && cs.ProposalBlockParts.IsComplete() && (cs.Proposal.BlobID.IsNil() || cs.ProposalBlobParts.IsComplete()) {
+		if added && cs.ProposalBlockParts.IsComplete() && ((cs.ProposalBlobParts != nil && cs.ProposalBlobParts.IsComplete()) || cs.ProposalBlobParts == nil) {
 			cs.handleCompleteProposal(msg.Height)
 		}
 		if added {
@@ -1164,7 +1164,7 @@ func (cs *State) enterNewRound(height int64, round int32) {
 		cs.Proposal = nil
 		cs.ProposalBlock = nil
 		cs.ProposalBlockParts = nil
-		cs.ProposalBlob = types.Blob{}
+		cs.ProposalBlob = nil
 		cs.ProposalBlobParts = nil
 	}
 
@@ -2171,7 +2171,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		cs.Logger.Info("received complete proposal block", "height", cs.ProposalBlock.Height, "hash", cs.ProposalBlock.Hash())
 
 		// Both blocks and blobs need to be complete to fire the event.
-		if cs.Proposal.BlobID.IsNil() || cs.ProposalBlobParts.IsComplete() {
+		if cs.ProposalBlobParts == nil || (cs.ProposalBlobParts != nil && cs.ProposalBlobParts.IsComplete()) {
 			if err := cs.eventBus.PublishEventCompleteProposal(cs.CompleteProposalEvent()); err != nil {
 				cs.Logger.Error("Failed publishing event complete proposal", "err", err)
 			}
