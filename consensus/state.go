@@ -38,6 +38,7 @@ var (
 	ErrAddingVote                 = errors.New("error adding vote")
 	ErrSignatureFoundInPastBlocks = errors.New("found signature from the same key")
 	ErrProposalTooManyParts       = errors.New("proposal block has too many parts")
+	ErrProposalTooManyBlobParts   = errors.New("proposal blob has too many parts")
 
 	errPubKeyIsNotSet = errors.New("pubkey is not set. Look for \"Can't get private validator pubkey\" errors")
 )
@@ -2075,9 +2076,12 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	}
 
 	// Validate the proposed blob size, derived from its PartSetHeader
-	maxBlobBytes := int64(types.MaxBlobSizeBytes)
+	maxBlobBytes := cs.state.ConsensusParams.Blob.MaxBytes
+	if maxBlobBytes == -1 {
+		maxBlobBytes = int64(types.MaxBlobSizeBytes)
+	}
 	if int64(proposal.BlobID.PartSetHeader.Total) > (maxBlobBytes-1)/int64(types.BlobPartSizeBytes)+1 {
-		return ErrProposalTooManyParts
+		return ErrProposalTooManyBlobParts
 	}
 
 	proposal.Signature = p.Signature
@@ -2232,7 +2236,10 @@ func (cs *State) addProposalBlobPart(msg *BlobPartMessage, peerID p2p.ID) (added
 	cs.Logger.Debug("Receive blob part", "height", height, "round", round,
 		"index", part.Index, "count", count, "total", total, "from", peerID)
 
-	maxBlobBytes := int64(types.MaxBlobSizeBytes)
+	maxBlobBytes := cs.state.ConsensusParams.Blob.MaxBytes
+	if maxBlobBytes == -1 {
+		maxBlobBytes = int64(types.MaxBlobSizeBytes)
+	}
 	if cs.ProposalBlobParts.ByteSize() > maxBlobBytes {
 		return added, fmt.Errorf("total size of proposal blob parts exceeds maximum blob bytes (%d > %d)",
 			cs.ProposalBlobParts.ByteSize(), maxBlobBytes,

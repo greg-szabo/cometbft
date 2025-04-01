@@ -40,6 +40,7 @@ var ABCIPubKeyTypesToNames = map[string]string{
 // validity of blocks.
 type ConsensusParams struct {
 	Block     BlockParams     `json:"block"`
+	Blob      BlobParams      `json:"blob"`
 	Evidence  EvidenceParams  `json:"evidence"`
 	Validator ValidatorParams `json:"validator"`
 	Version   VersionParams   `json:"version"`
@@ -51,6 +52,11 @@ type ConsensusParams struct {
 type BlockParams struct {
 	MaxBytes int64 `json:"max_bytes"`
 	MaxGas   int64 `json:"max_gas"`
+}
+
+// BlobParams define limits on the blob size.
+type BlobParams struct {
+	MaxBytes int64 `json:"max_bytes"`
 }
 
 // EvidenceParams determine how we handle evidence of malfeasance.
@@ -92,6 +98,7 @@ func (a ABCIParams) VoteExtensionsEnabled(h int64) bool {
 func DefaultConsensusParams() *ConsensusParams {
 	return &ConsensusParams{
 		Block:     DefaultBlockParams(),
+		Blob:      DefaultBlobParams(),
 		Evidence:  DefaultEvidenceParams(),
 		Validator: DefaultValidatorParams(),
 		Version:   DefaultVersionParams(),
@@ -104,6 +111,13 @@ func DefaultBlockParams() BlockParams {
 	return BlockParams{
 		MaxBytes: 22020096, // 21MB
 		MaxGas:   -1,
+	}
+}
+
+// DefaultBlobParams returns a default BlobParams.
+func DefaultBlobParams() BlobParams {
+	return BlobParams{
+		MaxBytes: 819200, // 800kB
 	}
 }
 
@@ -165,6 +179,18 @@ func (params ConsensusParams) ValidateBasic() error {
 	if params.Block.MaxGas < -1 {
 		return fmt.Errorf("block.MaxGas must be greater or equal to -1. Got %d",
 			params.Block.MaxGas)
+	}
+
+	if params.Blob.MaxBytes == 0 {
+		return errors.New("blob.MaxBytes cannot be 0")
+	}
+	if params.Blob.MaxBytes < -1 {
+		return fmt.Errorf("blob.MaxBytes must be -1 or greater than 0. Got %d",
+			params.Blob.MaxBytes)
+	}
+	if params.Blob.MaxBytes > MaxBlobSizeBytes {
+		return fmt.Errorf("blob.MaxBytes is too big. %d > %d",
+			params.Blob.MaxBytes, MaxBlobSizeBytes)
 	}
 
 	if params.Evidence.MaxAgeNumBlocks <= 0 {
@@ -309,6 +335,9 @@ func (params ConsensusParams) Update(params2 *cmtproto.ConsensusParams) Consensu
 		res.Block.MaxBytes = params2.Block.MaxBytes
 		res.Block.MaxGas = params2.Block.MaxGas
 	}
+	if params2.Blob != nil {
+		res.Blob.MaxBytes = params2.Blob.MaxBytes
+	}
 	if params2.Evidence != nil {
 		res.Evidence.MaxAgeNumBlocks = params2.Evidence.MaxAgeNumBlocks
 		res.Evidence.MaxAgeDuration = params2.Evidence.MaxAgeDuration
@@ -334,6 +363,9 @@ func (params *ConsensusParams) ToProto() cmtproto.ConsensusParams {
 			MaxBytes: params.Block.MaxBytes,
 			MaxGas:   params.Block.MaxGas,
 		},
+		Blob: &cmtproto.BlobParams{
+			MaxBytes: params.Blob.MaxBytes,
+		},
 		Evidence: &cmtproto.EvidenceParams{
 			MaxAgeNumBlocks: params.Evidence.MaxAgeNumBlocks,
 			MaxAgeDuration:  params.Evidence.MaxAgeDuration,
@@ -356,6 +388,9 @@ func ConsensusParamsFromProto(pbParams cmtproto.ConsensusParams) ConsensusParams
 		Block: BlockParams{
 			MaxBytes: pbParams.Block.MaxBytes,
 			MaxGas:   pbParams.Block.MaxGas,
+		},
+		Blob: BlobParams{
+			MaxBytes: pbParams.Blob.MaxBytes,
 		},
 		Evidence: EvidenceParams{
 			MaxAgeNumBlocks: pbParams.Evidence.MaxAgeNumBlocks,
