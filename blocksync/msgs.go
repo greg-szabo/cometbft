@@ -14,7 +14,6 @@ const (
 	BlockResponseMessagePrefixSize   = 4
 	BlockResponseMessageFieldKeySize = 1
 	MaxMsgSize                       = types.MaxBlockSizeBytes +
-		types.MaxBlobSizeBytes +
 		BlockResponseMessagePrefixSize +
 		BlockResponseMessageFieldKeySize
 )
