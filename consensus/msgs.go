@@ -183,7 +183,7 @@ func MsgFromProto(p proto.Message) (Message, error) {
 			ProposalPOL:      pbBits,
 		}
 	case *cmtcons.BlockPart:
-		parts, err := types.PartFromProto(&msg.Part, types.PartSetTypeBlock)
+		parts, err := types.PartFromProto(&msg.Part)
 		if err != nil {
 			return nil, fmt.Errorf("blockpart msg to proto error: %w", err)
 		}
@@ -238,7 +238,7 @@ func MsgFromProto(p proto.Message) (Message, error) {
 		}
 
 	case *cmtcons.BlobPart:
-		parts, err := types.PartFromProto(&msg.Part, types.PartSetTypeBlob)
+		parts, err := types.PartFromProto(&msg.Part)
 		if err != nil {
 			return nil, fmt.Errorf("blobpart msg to proto error: %w", err)
 		}

@@ -42,24 +42,13 @@ type Part struct {
 }
 
 // ValidateBasic performs basic validation.
-func (part *Part) ValidateBasic(partSetType PartSetType) error {
-	switch partSetType {
-	case PartSetTypeBlock:
-		if len(part.Bytes) > int(BlockPartSizeBytes) {
-			return ErrPartTooBig
-		}
-		// All parts except the last one should have the same constant size.
-		if int64(part.Index) < part.Proof.Total-1 && len(part.Bytes) != int(BlockPartSizeBytes) {
-			return ErrPartInvalidSize
-		}
-	case PartSetTypeBlob:
-		if len(part.Bytes) > int(BlobPartSizeBytes) {
-			return ErrPartTooBig
-		}
-		// All parts except the last one should have the same constant size.
-		if int64(part.Index) < part.Proof.Total-1 && len(part.Bytes) != int(BlobPartSizeBytes) {
-			return ErrPartInvalidSize
-		}
+func (part *Part) ValidateBasic() error {
+	if len(part.Bytes) > int(BlockPartSizeBytes) {
+		return ErrPartTooBig
+	}
+	// All parts except the last one should have the same constant size.
+	if int64(part.Index) < part.Proof.Total-1 && len(part.Bytes) != int(BlockPartSizeBytes) {
+		return ErrPartInvalidSize
 	}
 	if int64(part.Index) != part.Proof.Index {
 		return ErrInvalidPart{Reason: fmt.Errorf("part index %d != proof index %d", part.Index, part.Proof.Index)}
@@ -105,7 +94,7 @@ func (part *Part) ToProto() (*cmtproto.Part, error) {
 	return pb, nil
 }
 
-func PartFromProto(pb *cmtproto.Part, partSetType PartSetType) (*Part, error) {
+func PartFromProto(pb *cmtproto.Part) (*Part, error) {
 	if pb == nil {
 		return nil, errors.New("nil part")
 	}
@@ -119,7 +108,7 @@ func PartFromProto(pb *cmtproto.Part, partSetType PartSetType) (*Part, error) {
 	part.Bytes = pb.Bytes
 	part.Proof = *proof
 
-	return part, part.ValidateBasic(partSetType)
+	return part, part.ValidateBasic()
 }
 
 //-------------------------------------
@@ -186,19 +175,9 @@ func ProtoPartSetHeaderIsZero(ppsh *cmtproto.PartSetHeader) bool {
 
 //-------------------------------------
 
-type PartSetType int
-
-const (
-	// PartSetTypeBlock indicates the PartSet contains block data.
-	PartSetTypeBlock PartSetType = iota
-	// PartSetTypeBlob indicates the PartSet contains blob data. It requires different validation.
-	PartSetTypeBlob
-)
-
 type PartSet struct {
-	partSetType PartSetType
-	total       uint32
-	hash        []byte
+	total uint32
+	hash  []byte
 
 	mtx           cmtsync.Mutex
 	parts         []*Part
@@ -212,7 +191,7 @@ type PartSet struct {
 // Returns an immutable, full PartSet from the data bytes.
 // The data bytes are split into "partSize" chunks, and merkle tree computed.
 // CONTRACT: partSize is greater than zero.
-func NewPartSetFromData(data []byte, partSize uint32, partSetType PartSetType) *PartSet {
+func NewPartSetFromData(data []byte, partSize uint32) *PartSet {
 	// divide data into 4kb parts.
 	total := (uint32(len(data)) + partSize - 1) / partSize
 	parts := make([]*Part, total)
@@ -233,7 +212,6 @@ func NewPartSetFromData(data []byte, partSize uint32, partSetType PartSetType) *
 		parts[i].Proof = *proofs[i]
 	}
 	return &PartSet{
-		partSetType:   partSetType,
 		total:         total,
 		hash:          root,
 		parts:         parts,
@@ -244,9 +222,8 @@ func NewPartSetFromData(data []byte, partSize uint32, partSetType PartSetType) *
 }
 
 // Returns an empty PartSet ready to be populated.
-func NewPartSetFromHeader(header PartSetHeader, partSetType PartSetType) *PartSet {
+func NewPartSetFromHeader(header PartSetHeader) *PartSet {
 	return &PartSet{
-		partSetType:   partSetType,
 		total:         header.Total,
 		hash:          header.Hash,
 		parts:         make([]*Part, header.Total),

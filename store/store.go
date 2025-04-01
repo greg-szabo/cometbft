@@ -204,7 +204,7 @@ func (bs *BlockStore) LoadBlockPart(height int64, index int) *types.Part {
 	if err != nil {
 		panic(fmt.Errorf("unmarshal to cmtproto.Part failed: %w", err))
 	}
-	part, err := types.PartFromProto(pbpart, types.PartSetTypeBlock)
+	part, err := types.PartFromProto(pbpart)
 	if err != nil {
 		panic(fmt.Sprintf("Error reading block part: %v", err))
 	}

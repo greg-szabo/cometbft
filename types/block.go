@@ -158,7 +158,7 @@ func (b *Block) MakePartSet(partSize uint32) (*PartSet, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewPartSetFromData(bz, partSize, PartSetTypeBlock), nil
+	return NewPartSetFromData(bz, partSize), nil
 }
 
 // HashesTo is a convenience function that checks if a block hashes to the given argument.

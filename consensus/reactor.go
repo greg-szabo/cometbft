@@ -1770,7 +1770,7 @@ func (m *BlockPartMessage) ValidateBasic() error {
 	if m.Round < 0 {
 		return errors.New("negative Round")
 	}
-	if err := m.Part.ValidateBasic(types.PartSetTypeBlock); err != nil {
+	if err := m.Part.ValidateBasic(); err != nil {
 		return fmt.Errorf("wrong Part: %v", err)
 	}
 	return nil
@@ -1799,7 +1799,7 @@ func (m *BlobPartMessage) ValidateBasic() error {
 	if m.Round < 0 {
 		return errors.New("negative Round")
 	}
-	if err := m.Part.ValidateBasic(types.PartSetTypeBlob); err != nil {
+	if err := m.Part.ValidateBasic(); err != nil {
 		return fmt.Errorf("wrong part field: %v", err)
 	}
 	return nil
