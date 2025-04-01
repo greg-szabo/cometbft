@@ -696,7 +696,7 @@ func ensureNewUnlock(unlockCh <-chan cmtpubsub.Message, height int64, round int3
 		"Timeout expired while waiting for NewUnlock event")
 }
 
-func ensureProposal(proposalCh <-chan cmtpubsub.Message, height int64, round int32, propID types.BlockID, blobID *types.BlobID) {
+func ensureProposal(proposalCh <-chan cmtpubsub.Message, height int64, round int32, propID types.BlockID, blobID types.BlobID) {
 	select {
 	case <-time.After(ensureTimeout):
 		panic("Timeout expired while waiting for NewProposal event")
@@ -715,7 +715,7 @@ func ensureProposal(proposalCh <-chan cmtpubsub.Message, height int64, round int
 		if !proposalEvent.BlockID.Equals(propID) {
 			panic(fmt.Sprintf("Proposed block does not match expected block (%v != %v)", proposalEvent.BlockID, propID))
 		}
-		if blobID != nil {
+		if !blobID.IsNil() {
 			if !bytes.Equal(proposalEvent.BlobID.Hash, blobID.Hash) {
 				panic(fmt.Sprintf("Proposed blob does not match expected block (%v != %v)", proposalEvent.BlockID, propID))
 			}
