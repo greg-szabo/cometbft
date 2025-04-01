@@ -276,16 +276,6 @@ func BlockFromProto(bp *cmtproto.Block) (*Block, error) {
 	return b, b.ValidateBasic()
 }
 
-// BlobFromProto sets a protobuf Blob to the given pointer.
-// It returns an error if the blob does not exist.
-func BlobFromProto(bp *cmtproto.Blob) (Blob, error) {
-	if bp == nil {
-		return nil, errors.New("nil blob")
-	}
-
-	return bp.Data, nil
-}
-
 // -----------------------------------------------------------------------------
 
 // MaxDataBytes returns the maximum size of block's data.
