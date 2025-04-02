@@ -187,6 +187,45 @@ func TestStateEnterProposeYesPrivValidator(t *testing.T) {
 	ensureNoNewTimeout(timeoutCh, cs.config.TimeoutPropose.Nanoseconds())
 }
 
+// Finish proposal stage without timing out (we have the proposal) for a block with
+// a corresponding blob.
+func TestStateEnterProposeWithBlob(t *testing.T) {
+	cs, _ := randStateWithBlob(1)
+	height, round := cs.Height, cs.Round
+
+	// Listen for propose timeout event
+
+	timeoutCh := subscribe(cs.eventBus, types.EventQueryTimeoutPropose)
+	proposalCh := subscribe(cs.eventBus, types.EventQueryCompleteProposal)
+
+	cs.enterNewRound(height, round)
+	cs.startRoutines(3)
+
+	ensureNewProposal(proposalCh, height, round)
+
+	// Check that Proposal, ProposalBlock, ProposalBlockParts, ProposalBlob, and
+	// ProposalBlobParts are set.
+	rs := cs.GetRoundState()
+	if rs.Proposal == nil {
+		t.Error("rs.Proposal should be set")
+	}
+	if rs.ProposalBlock == nil {
+		t.Error("rs.ProposalBlock should be set")
+	}
+	if rs.ProposalBlockParts.Total() == 0 {
+		t.Error("rs.ProposalBlockParts should be set")
+	}
+	if len(rs.ProposalBlob) == 0 {
+		t.Error("rs.ProposalBlob should be set")
+	}
+	if rs.ProposalBlobParts.Total() == 0 {
+		t.Error("rs.ProposalBlobParts should be set")
+	}
+
+	// if we're a validator, enterPropose should not timeout
+	ensureNoNewTimeout(timeoutCh, cs.config.TimeoutPropose.Nanoseconds())
+}
+
 func TestStateBadProposal(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
