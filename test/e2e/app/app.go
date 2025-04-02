@@ -129,7 +129,7 @@ func DefaultConfig(dir string) *Config {
 // 3 - blob is variable length string that contains "BLOBXXX" where XXX is height multiplied by 0x80 in hex
 // 4 - blob is the size of MaxBlobSizeBytes and contains height truncated into two bytes repeated.
 func blobOracle(height int64) ([]byte, bool) {
-	switch height % 5 {
+	switch height % 4 {
 	case 1:
 		truncatedHeight := byte(height % 0x100)
 		data := bytes.Repeat([]byte{truncatedHeight}, 8)
@@ -167,7 +167,7 @@ func VerifyBlob(height int64, blob []byte) bool {
 	validBlob, exist := blobOracle(height)
 	if !exist {
 		// The application received a blob at a height where no blob should be.
-		return false
+		return len(blob) == 0
 	}
 	return bytes.Equal(validBlob, blob)
 }
@@ -536,6 +536,7 @@ func (app *Application) PrepareProposal(
 	if !exists {
 		return &abci.ResponsePrepareProposal{Txs: txs}, nil
 	}
+	fmt.Println("BLOB_1: ", blob)
 	return &abci.ResponsePrepareProposal{Txs: txs, Blob: blob}, nil
 }
 
@@ -547,12 +548,14 @@ func (app *Application) ProcessProposal(_ context.Context, req *abci.RequestProc
 	r := &abci.Request{Value: &abci.Request_ProcessProposal{ProcessProposal: &abci.RequestProcessProposal{}}}
 	app.logger.Info("ABCIRequest", "request", r)
 
+	fmt.Println("BLOB: ", req.Blob)
+
+	if !VerifyBlob(req.Height, req.Blob) {
+		app.logger.Error("invalid blob, rejecting proposal", "received height", req.Height, "received", req.Blob)
+		return &abci.ResponseProcessProposal{Status: abci.ResponseProcessProposal_REJECT}, nil
+	}
 	// Blob verification
-	if req.Blob != nil {
-		if !VerifyBlob(req.Height, req.Blob) {
-			app.logger.Error("invalid blob, rejecting proposal", "received height", req.Height, "received", req.Blob)
-			return &abci.ResponseProcessProposal{Status: abci.ResponseProcessProposal_REJECT}, nil
-		}
+	if len(req.Blob) != 0 {
 		// Proposal will be accepted by us and blob exists and valid, so we store it in the cache.
 		app.blobCache[req.Height] = req.Blob
 	} else {
