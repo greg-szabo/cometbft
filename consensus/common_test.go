@@ -28,6 +28,7 @@ import (
 	"github.com/cometbft/cometbft/libs/log"
 	cmtos "github.com/cometbft/cometbft/libs/os"
 	cmtpubsub "github.com/cometbft/cometbft/libs/pubsub"
+	cmtrand "github.com/cometbft/cometbft/libs/rand"
 	cmtsync "github.com/cometbft/cometbft/libs/sync"
 	mempl "github.com/cometbft/cometbft/mempool"
 	"github.com/cometbft/cometbft/p2p"
@@ -270,7 +271,7 @@ func decideProposal(
 	vs *validatorStub,
 	height int64,
 	round int32,
-) (*types.Proposal, *types.Block) {
+) (*types.Proposal, *types.Block, types.Blob) {
 	cs1.mtx.Lock()
 	block, _, err := cs1.createProposalBlock(ctx)
 	require.NoError(t, err)
@@ -284,9 +285,18 @@ func decideProposal(
 		panic("Failed to createProposalBlock. Did you forget to add commit for previous block?")
 	}
 
+	var (
+		blob      = types.Blob(cmtrand.Bytes(42))
+		blobParts = types.NewPartSetFromData(blob, types.PartSizeBytes)
+		blobID    = types.BlobID{
+			Hash:          blob.Hash(),
+			PartSetHeader: blobParts.Header(),
+		}
+	)
+
 	// Make proposal
 	polRound, propBlockID := validRound, types.BlockID{Hash: block.Hash(), PartSetHeader: blockParts.Header()}
-	proposal := types.NewProposal(height, round, polRound, propBlockID, types.BlobID{})
+	proposal := types.NewProposal(height, round, polRound, propBlockID, blobID)
 	p := proposal.ToProto()
 	if err := vs.SignProposal(chainID, p); err != nil {
 		panic(err)
@@ -294,7 +304,7 @@ func decideProposal(
 
 	proposal.Signature = p.Signature
 
-	return proposal, block
+	return proposal, block, blob
 }
 
 func addVotes(to *State, votes ...*types.Vote) {

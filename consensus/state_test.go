@@ -562,6 +562,13 @@ func TestStateLockNoPOL(t *testing.T) {
 
 	ensureNewProposal(proposalCh, height, round)
 	roundState := cs1.GetRoundState()
+
+	proposalBlob := roundState.ProposalBlob
+	require.NotEmpty(t, proposalBlob, "blob should not be empty")
+
+	proposalBlobParts := roundState.ProposalBlobParts
+	require.NotNil(t, proposalBlobParts, "blob parts should not be nil")
+
 	theBlockHash := roundState.ProposalBlock.Hash()
 	thePartSetHeader := roundState.ProposalBlockParts.Header()
 
@@ -605,6 +612,16 @@ func TestStateLockNoPOL(t *testing.T) {
 	rs := cs1.GetRoundState()
 
 	require.Nil(t, rs.ProposalBlock, "Expected proposal block to be nil")
+
+	// Blob and blob parts should not be there if we are not seeing a proposal in
+	// the round.
+	// Blobs should never be nil; rather, they should be initialized as empty slices
+	// ([]byte{}).
+	// A nil value indicates a bug, meaning we likely missed initializing the blob
+	// somewhere in the code.
+	require.NotNil(t, rs.ProposalBlob, "Proposal blob should never be nil")
+	require.Empty(t, rs.ProposalBlob, "Proposal blob should be empty")
+	require.Nil(t, rs.ProposalBlobParts, "Proposal blob parts should be nil")
 
 	// wait to finish prevote
 	ensurePrevote(voteCh, height, round)
@@ -657,6 +674,13 @@ func TestStateLockNoPOL(t *testing.T) {
 			rs.LockedBlock))
 	}
 
+	// In rounds after the first, if we are the proposer and we have a block to
+	// re-propose (i.e., we don't call ProcessProposal), then blob and blob parts
+	// are absent, because CometBFT does not store them.
+	require.NotNil(t, rs.ProposalBlob, "proposal block should never be nil")
+	require.Empty(t, rs.ProposalBlob, "blob should be empty")
+	require.Nil(t, rs.ProposalBlobParts, "blob parts should be nil")
+
 	ensurePrevote(voteCh, height, round) // prevote
 	validatePrevote(t, cs1, round, vss[0], rs.LockedBlock.Hash())
 
@@ -685,7 +709,7 @@ func TestStateLockNoPOL(t *testing.T) {
 
 	cs2, _ := randState(2) // needed so generated block is different than locked block
 	// before we time out into new round, set next proposal block
-	prop, propBlock := decideProposal(ctx, t, cs2, vs2, vs2.Height, vs2.Round+1)
+	prop, propBlock, _ := decideProposal(ctx, t, cs2, vs2, vs2.Height, vs2.Round+1)
 	if prop == nil || propBlock == nil {
 		t.Fatal("Failed to create proposal block with vs2")
 	}
@@ -788,7 +812,7 @@ func TestStateLockPOLRelock(t *testing.T) {
 
 	// before we timeout to the new round set the new proposal
 	cs2 := newState(cs1.state, vs2, kvstore.NewInMemoryApplication())
-	prop, propBlock := decideProposal(ctx, t, cs2, vs2, vs2.Height, vs2.Round+1)
+	prop, propBlock, _ := decideProposal(ctx, t, cs2, vs2, vs2.Height, vs2.Round+1)
 	if prop == nil || propBlock == nil {
 		t.Fatal("Failed to create proposal block with vs2")
 	}
@@ -890,7 +914,7 @@ func TestStateLockPOLUnlock(t *testing.T) {
 	signAddVotes(cs1, cmtproto.PrecommitType, theBlockHash, theBlockParts, true, vs3)
 
 	// before we time out into new round, set next proposal block
-	prop, propBlock := decideProposal(ctx, t, cs1, vs2, vs2.Height, vs2.Round+1)
+	prop, propBlock, _ := decideProposal(ctx, t, cs1, vs2, vs2.Height, vs2.Round+1)
 	propBlockParts, err := propBlock.MakePartSet(partSize)
 	require.NoError(t, err)
 
@@ -982,7 +1006,7 @@ func TestStateLockPOLUnlockOnUnknownBlock(t *testing.T) {
 
 	// before we timeout to the new round set the new proposal
 	cs2 := newState(cs1.state, vs2, kvstore.NewInMemoryApplication())
-	prop, propBlock := decideProposal(ctx, t, cs2, vs2, vs2.Height, vs2.Round+1)
+	prop, propBlock, _ := decideProposal(ctx, t, cs2, vs2, vs2.Height, vs2.Round+1)
 	if prop == nil || propBlock == nil {
 		t.Fatal("Failed to create proposal block with vs2")
 	}
@@ -1028,7 +1052,7 @@ func TestStateLockPOLUnlockOnUnknownBlock(t *testing.T) {
 
 	// before we timeout to the new round set the new proposal
 	cs3 := newState(cs1.state, vs3, kvstore.NewInMemoryApplication())
-	prop, propBlock = decideProposal(ctx, t, cs3, vs3, vs3.Height, vs3.Round+1)
+	prop, propBlock, _ = decideProposal(ctx, t, cs3, vs3, vs3.Height, vs3.Round+1)
 	if prop == nil || propBlock == nil {
 		t.Fatal("Failed to create proposal block with vs2")
 	}
@@ -1116,7 +1140,7 @@ func TestStateLockPOLSafety1(t *testing.T) {
 
 	t.Log("### ONTO ROUND 1")
 
-	prop, propBlock := decideProposal(ctx, t, cs1, vs2, vs2.Height, vs2.Round+1)
+	prop, propBlock, _ := decideProposal(ctx, t, cs1, vs2, vs2.Height, vs2.Round+1)
 	propBlockHash := propBlock.Hash()
 	propBlockParts, err := propBlock.MakePartSet(partSize)
 	require.NoError(t, err)
@@ -1216,7 +1240,7 @@ func TestStateLockPOLSafety2(t *testing.T) {
 
 	// the block for R0: gets polkad but we miss it
 	// (even though we signed it, shhh)
-	_, propBlock0 := decideProposal(ctx, t, cs1, vss[0], height, round)
+	_, propBlock0, _ := decideProposal(ctx, t, cs1, vss[0], height, round)
 	propBlockHash0 := propBlock0.Hash()
 	propBlockParts0, err := propBlock0.MakePartSet(partSize)
 	require.NoError(t, err)
@@ -1226,7 +1250,7 @@ func TestStateLockPOLSafety2(t *testing.T) {
 	prevotes := signVotes(cmtproto.PrevoteType, propBlockHash0, propBlockParts0.Header(), false, vs2, vs3, vs4)
 
 	// the block for round 1
-	prop1, propBlock1 := decideProposal(ctx, t, cs1, vs2, vs2.Height, vs2.Round+1)
+	prop1, propBlock1, _ := decideProposal(ctx, t, cs1, vs2, vs2.Height, vs2.Round+1)
 	propBlockHash1 := propBlock1.Hash()
 	propBlockParts1, err := propBlock1.MakePartSet(partSize)
 	require.NoError(t, err)
@@ -1482,7 +1506,7 @@ func TestSetValidBlockOnDelayedProposal(t *testing.T) {
 	ensurePrevote(voteCh, height, round)
 	validatePrevote(t, cs1, round, vss[0], nil)
 
-	prop, propBlock := decideProposal(ctx, t, cs1, vs2, vs2.Height, vs2.Round+1)
+	prop, propBlock, _ := decideProposal(ctx, t, cs1, vs2, vs2.Height, vs2.Round+1)
 	propBlockHash := propBlock.Hash()
 	propBlockParts, err := propBlock.MakePartSet(partSize)
 	require.NoError(t, err)
@@ -2043,7 +2067,7 @@ func TestStateDoesntCrashOnInvalidVote(t *testing.T) {
 
 	startTestRound(cs, height, round)
 
-	_, propBlock := decideProposal(context.Background(), t, cs, vss[0], height, round)
+	_, propBlock, _ := decideProposal(context.Background(), t, cs, vss[0], height, round)
 	propBlockParts, err := propBlock.MakePartSet(types.PartSizeBytes)
 	assert.NoError(t, err)
 
@@ -2202,7 +2226,7 @@ func TestEmitNewValidBlockEventOnCommitWithoutBlock(t *testing.T) {
 	newRoundCh := subscribe(cs1.eventBus, types.EventQueryNewRound)
 	validBlockCh := subscribe(cs1.eventBus, types.EventQueryValidBlock)
 
-	_, propBlock := decideProposal(ctx, t, cs1, vs2, vs2.Height, vs2.Round)
+	_, propBlock, _ := decideProposal(ctx, t, cs1, vs2, vs2.Height, vs2.Round)
 	propBlockHash := propBlock.Hash()
 	propBlockParts, err := propBlock.MakePartSet(partSize)
 	require.NoError(t, err)
@@ -2238,7 +2262,7 @@ func TestCommitFromPreviousRound(t *testing.T) {
 	validBlockCh := subscribe(cs1.eventBus, types.EventQueryValidBlock)
 	proposalCh := subscribe(cs1.eventBus, types.EventQueryCompleteProposal)
 
-	prop, propBlock := decideProposal(ctx, t, cs1, vs2, vs2.Height, vs2.Round)
+	prop, propBlock, _ := decideProposal(ctx, t, cs1, vs2, vs2.Height, vs2.Round)
 	propBlockHash := propBlock.Hash()
 	propBlockParts, err := propBlock.MakePartSet(partSize)
 	require.NoError(t, err)
@@ -2387,7 +2411,7 @@ func TestResetTimeoutPrecommitUponNewHeight(t *testing.T) {
 
 	ensureNewBlockHeader(newBlockHeader, height, theBlockHash)
 
-	prop, propBlock := decideProposal(ctx, t, cs1, vs2, height+1, 0)
+	prop, propBlock, _ := decideProposal(ctx, t, cs1, vs2, height+1, 0)
 	propBlockParts, err := propBlock.MakePartSet(partSize)
 	require.NoError(t, err)
 
