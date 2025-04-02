@@ -234,7 +234,7 @@ func TestStateBadProposal(t *testing.T) {
 	height, round := cs1.Height, cs1.Round
 	vs2 := vss[1]
 
-	partSize := types.BlockPartSizeBytes
+	partSize := types.PartSizeBytes
 
 	proposalCh := subscribe(cs1.eventBus, types.EventQueryCompleteProposal)
 	voteCh := subscribe(cs1.eventBus, types.EventQueryVote)
@@ -273,7 +273,7 @@ func TestStateBadProposal(t *testing.T) {
 	startTestRound(cs1, height, round)
 
 	// wait for proposal
-	ensureProposal(proposalCh, height, round, blockID, &proposal.BlobID)
+	ensureProposal(proposalCh, height, round, blockID, proposal.BlobID)
 
 	// wait for prevote
 	ensurePrevote(voteCh, height, round)
@@ -296,7 +296,7 @@ func TestStateBadProposal(t *testing.T) {
 }
 
 func TestStateOversizedBlock(t *testing.T) {
-	const maxBytes = int64(types.BlockPartSizeBytes)
+	const maxBytes = int64(types.PartSizeBytes)
 
 	for _, testCase := range []struct {
 		name      string
@@ -317,7 +317,7 @@ func TestStateOversizedBlock(t *testing.T) {
 			height, round := cs1.Height, cs1.Round
 			vs2 := vss[1]
 
-			partSize := types.BlockPartSizeBytes
+			partSize := types.PartSizeBytes
 
 			propBlock, propBlockParts := findBlockSizeLimit(t, height, maxBytes, cs1, partSize, testCase.oversized)
 
@@ -342,8 +342,8 @@ func TestStateOversizedBlock(t *testing.T) {
 				totalBytes += len(part.Bytes)
 			}
 
-			maxBlockParts := maxBytes / int64(types.BlockPartSizeBytes)
-			if maxBytes > maxBlockParts*int64(types.BlockPartSizeBytes) {
+			maxBlockParts := maxBytes / int64(types.PartSizeBytes)
+			if maxBytes > maxBlockParts*int64(types.PartSizeBytes) {
 				maxBlockParts++
 			}
 			numBlockParts := int64(propBlockParts.Total())
@@ -499,7 +499,7 @@ func TestStateLockNoPOL(t *testing.T) {
 	vs2 := vss[1]
 	height, round := cs1.Height, cs1.Round
 
-	partSize := types.BlockPartSizeBytes
+	partSize := types.PartSizeBytes
 
 	timeoutProposeCh := subscribe(cs1.eventBus, types.EventQueryTimeoutPropose)
 	timeoutWaitCh := subscribe(cs1.eventBus, types.EventQueryTimeoutWait)
@@ -704,7 +704,7 @@ func TestStateLockPOLRelock(t *testing.T) {
 	vs2, vs3, vs4 := vss[1], vss[2], vss[3]
 	height, round := cs1.Height, cs1.Round
 
-	partSize := types.BlockPartSizeBytes
+	partSize := types.PartSizeBytes
 
 	timeoutWaitCh := subscribe(cs1.eventBus, types.EventQueryTimeoutWait)
 	proposalCh := subscribe(cs1.eventBus, types.EventQueryCompleteProposal)
@@ -806,7 +806,7 @@ func TestStateLockPOLUnlock(t *testing.T) {
 	vs2, vs3, vs4 := vss[1], vss[2], vss[3]
 	height, round := cs1.Height, cs1.Round
 
-	partSize := types.BlockPartSizeBytes
+	partSize := types.PartSizeBytes
 
 	proposalCh := subscribe(cs1.eventBus, types.EventQueryCompleteProposal)
 	timeoutWaitCh := subscribe(cs1.eventBus, types.EventQueryTimeoutWait)
@@ -902,7 +902,7 @@ func TestStateLockPOLUnlockOnUnknownBlock(t *testing.T) {
 	vs2, vs3, vs4 := vss[1], vss[2], vss[3]
 	height, round := cs1.Height, cs1.Round
 
-	partSize := types.BlockPartSizeBytes
+	partSize := types.PartSizeBytes
 
 	timeoutWaitCh := subscribe(cs1.eventBus, types.EventQueryTimeoutWait)
 	proposalCh := subscribe(cs1.eventBus, types.EventQueryCompleteProposal)
@@ -1034,7 +1034,7 @@ func TestStateLockPOLSafety1(t *testing.T) {
 	vs2, vs3, vs4 := vss[1], vss[2], vss[3]
 	height, round := cs1.Height, cs1.Round
 
-	partSize := types.BlockPartSizeBytes
+	partSize := types.PartSizeBytes
 
 	proposalCh := subscribe(cs1.eventBus, types.EventQueryCompleteProposal)
 	timeoutProposeCh := subscribe(cs1.eventBus, types.EventQueryTimeoutPropose)
@@ -1160,7 +1160,7 @@ func TestStateLockPOLSafety2(t *testing.T) {
 	vs2, vs3, vs4 := vss[1], vss[2], vss[3]
 	height, round := cs1.Height, cs1.Round
 
-	partSize := types.BlockPartSizeBytes
+	partSize := types.PartSizeBytes
 
 	proposalCh := subscribe(cs1.eventBus, types.EventQueryCompleteProposal)
 	timeoutWaitCh := subscribe(cs1.eventBus, types.EventQueryTimeoutWait)
@@ -1258,7 +1258,7 @@ func TestProposeValidBlock(t *testing.T) {
 	vs2, vs3, vs4 := vss[1], vss[2], vss[3]
 	height, round := cs1.Height, cs1.Round
 
-	partSize := types.BlockPartSizeBytes
+	partSize := types.PartSizeBytes
 
 	proposalCh := subscribe(cs1.eventBus, types.EventQueryCompleteProposal)
 	timeoutWaitCh := subscribe(cs1.eventBus, types.EventQueryTimeoutWait)
@@ -1350,7 +1350,7 @@ func TestSetValidBlockOnDelayedPrevote(t *testing.T) {
 	vs2, vs3, vs4 := vss[1], vss[2], vss[3]
 	height, round := cs1.Height, cs1.Round
 
-	partSize := types.BlockPartSizeBytes
+	partSize := types.PartSizeBytes
 
 	proposalCh := subscribe(cs1.eventBus, types.EventQueryCompleteProposal)
 	timeoutWaitCh := subscribe(cs1.eventBus, types.EventQueryTimeoutWait)
@@ -1416,7 +1416,7 @@ func TestSetValidBlockOnDelayedProposal(t *testing.T) {
 	vs2, vs3, vs4 := vss[1], vss[2], vss[3]
 	height, round := cs1.Height, cs1.Round
 
-	partSize := types.BlockPartSizeBytes
+	partSize := types.PartSizeBytes
 
 	timeoutWaitCh := subscribe(cs1.eventBus, types.EventQueryTimeoutWait)
 	timeoutProposeCh := subscribe(cs1.eventBus, types.EventQueryTimeoutPropose)
@@ -2001,7 +2001,7 @@ func TestStateDoesntCrashOnInvalidVote(t *testing.T) {
 	startTestRound(cs, height, round)
 
 	_, propBlock := decideProposal(context.Background(), t, cs, vss[0], height, round)
-	propBlockParts, err := propBlock.MakePartSet(types.BlockPartSizeBytes)
+	propBlockParts, err := propBlock.MakePartSet(types.PartSizeBytes)
 	assert.NoError(t, err)
 
 	vote := signVote(vss[1], cmtproto.PrecommitType, propBlock.Hash(), propBlockParts.Header(), true)
@@ -2154,7 +2154,7 @@ func TestEmitNewValidBlockEventOnCommitWithoutBlock(t *testing.T) {
 
 	incrementRound(vs2, vs3, vs4)
 
-	partSize := types.BlockPartSizeBytes
+	partSize := types.PartSizeBytes
 
 	newRoundCh := subscribe(cs1.eventBus, types.EventQueryNewRound)
 	validBlockCh := subscribe(cs1.eventBus, types.EventQueryValidBlock)
@@ -2189,7 +2189,7 @@ func TestCommitFromPreviousRound(t *testing.T) {
 	vs2, vs3, vs4 := vss[1], vss[2], vss[3]
 	height, round := cs1.Height, int32(1)
 
-	partSize := types.BlockPartSizeBytes
+	partSize := types.PartSizeBytes
 
 	newRoundCh := subscribe(cs1.eventBus, types.EventQueryNewRound)
 	validBlockCh := subscribe(cs1.eventBus, types.EventQueryValidBlock)
@@ -2309,7 +2309,7 @@ func TestResetTimeoutPrecommitUponNewHeight(t *testing.T) {
 	vs2, vs3, vs4 := vss[1], vss[2], vss[3]
 	height, round := cs1.Height, cs1.Round
 
-	partSize := types.BlockPartSizeBytes
+	partSize := types.PartSizeBytes
 
 	proposalCh := subscribe(cs1.eventBus, types.EventQueryCompleteProposal)
 
@@ -2449,7 +2449,7 @@ func TestStateHalt1(t *testing.T) {
 	cs1, vss := randState(4)
 	vs2, vs3, vs4 := vss[1], vss[2], vss[3]
 	height, round := cs1.Height, cs1.Round
-	partSize := types.BlockPartSizeBytes
+	partSize := types.PartSizeBytes
 
 	proposalCh := subscribe(cs1.eventBus, types.EventQueryCompleteProposal)
 	timeoutWaitCh := subscribe(cs1.eventBus, types.EventQueryTimeoutWait)

@@ -36,7 +36,7 @@ import (
 
 var (
 	chainID             = "execution_chain"
-	testPartSize uint32 = types.BlockPartSizeBytes
+	testPartSize uint32 = types.PartSizeBytes
 )
 
 func TestApplyBlock(t *testing.T) {
@@ -395,7 +395,7 @@ func TestProcessProposal(t *testing.T) {
 
 	block0 := makeBlock(state, height-1, new(types.Commit))
 	lastCommitSig := []types.CommitSig{}
-	partSet, err := block0.MakePartSet(types.BlockPartSizeBytes)
+	partSet, err := block0.MakePartSet(types.PartSizeBytes)
 	require.NoError(t, err)
 	blockID := types.BlockID{Hash: block0.Hash(), PartSetHeader: partSet.Header()}
 	voteInfos := []abci.VoteInfo{}

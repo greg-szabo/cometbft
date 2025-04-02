@@ -18,11 +18,16 @@ const (
 	// MaxBlobSizeBytes is the maximum permitted size of the blob.
 	MaxBlobSizeBytes = 800 * 1024
 
-	// BlockPartSizeBytes is the size of one block part or one blob part.
-	BlockPartSizeBytes uint32 = 65536 // 64kB
+	// PartSizeBytes defines the size (in bytes) of each part when splitting
+	// a large object for transmission over the wire.
+	// CometBFT avoids sending large messages in a single payload; instead, it breaks
+	// them into smaller parts and transmits them sequentially.
+	// This applies to structures like blocks and blobs.
+	// Recipients are responsible for reassembling the full object from its parts.
+	PartSizeBytes uint32 = 65536 // 64kB
 
 	// MaxBlockPartsCount is the maximum number of block parts.
-	MaxBlockPartsCount = (MaxBlockSizeBytes + BlockPartSizeBytes - 1) / BlockPartSizeBytes
+	MaxBlockPartsCount = (MaxBlockSizeBytes + PartSizeBytes - 1) / PartSizeBytes
 
 	ABCIPubKeyTypeEd25519   = ed25519.KeyType
 	ABCIPubKeyTypeSecp256k1 = secp256k1.KeyType
