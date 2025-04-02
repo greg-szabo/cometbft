@@ -709,8 +709,8 @@ func TestStateLockNoPOL(t *testing.T) {
 
 	cs2, _ := randState(2) // needed so generated block is different than locked block
 	// before we time out into new round, set next proposal block
-	prop, propBlock, _ := decideProposal(ctx, t, cs2, vs2, vs2.Height, vs2.Round+1)
-	if prop == nil || propBlock == nil {
+	prop, propBlk, propBlob := decideProposal(ctx, t, cs2, vs2, vs2.Height, vs2.Round+1)
+	if prop == nil || propBlk == nil {
 		t.Fatal("Failed to create proposal block with vs2")
 	}
 
@@ -725,34 +725,47 @@ func TestStateLockNoPOL(t *testing.T) {
 
 	// now we're on a new round and not the proposer
 	// so set the proposal block
-	bps3, err := propBlock.MakePartSet(partSize)
+	propBlkParts, err := propBlk.MakePartSet(partSize)
 	require.NoError(t, err)
-	if err := cs1.SetProposalAndBlock(prop, propBlock, bps3, ""); err != nil {
+
+	var (
+		propBlkID = types.BlockID{
+			Hash:          propBlk.Hash(),
+			PartSetHeader: propBlkParts.Header(),
+		}
+		blobParts  = types.NewPartSetFromData(propBlob, partSize)
+		propBlobID = types.BlobID{
+			Hash:          propBlob.Hash(),
+			PartSetHeader: blobParts.Header(),
+		}
+	)
+
+	if err := cs1.SetProposalBlobAndBlock(prop, propBlkParts, blobParts, ""); err != nil {
 		t.Fatal(err)
 	}
 
-	ensureNewProposal(proposalCh, height, round)
+	ensureProposal(proposalCh, height, round, propBlkID, propBlobID)
 	ensurePrevote(voteCh, height, round) // prevote
 	// prevote for locked block (not proposal)
 	validatePrevote(t, cs1, 3, vss[0], cs1.LockedBlock.Hash())
 
 	// prevote for proposed block
-	bps4, err := propBlock.MakePartSet(partSize)
+	bps4, err := propBlk.MakePartSet(partSize)
 	require.NoError(t, err)
 
-	signAddVotes(cs1, cmtproto.PrevoteType, propBlock.Hash(), bps4.Header(), false, vs2)
+	signAddVotes(cs1, cmtproto.PrevoteType, propBlk.Hash(), bps4.Header(), false, vs2)
 	ensurePrevote(voteCh, height, round)
 
 	ensureNewTimeout(timeoutWaitCh, height, round, cs1.config.Prevote(round).Nanoseconds())
 	ensurePrecommit(voteCh, height, round)
 	validatePrecommit(t, cs1, round, 0, vss[0], nil, theBlockHash) // precommit nil but locked on proposal
 
-	bps5, err := propBlock.MakePartSet(partSize)
+	bps5, err := propBlk.MakePartSet(partSize)
 	require.NoError(t, err)
 	signAddVotes(
 		cs1,
 		cmtproto.PrecommitType,
-		propBlock.Hash(),
+		propBlk.Hash(),
 		bps5.Header(),
 		true,
 		vs2) // NOTE: conflicting precommits at same height
