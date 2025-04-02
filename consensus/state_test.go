@@ -422,9 +422,16 @@ func TestStateFullRound1(t *testing.T) {
 	ensureNewRound(newRoundCh, height, round)
 
 	ensureNewProposal(propCh, height, round)
-	propBlockHash := cs.GetRoundState().ProposalBlock.Hash()
+
+	propBlob := cs.GetRoundState().ProposalBlob
+	require.NotEmpty(t, propBlob, "blob should not be empty")
+
+	propBlobParts := cs.GetRoundState().ProposalBlobParts
+	require.NotNil(t, propBlobParts, "blob parts should not be nil")
 
 	ensurePrevote(voteCh, height, round) // wait for prevote
+
+	propBlockHash := cs.GetRoundState().ProposalBlock.Hash()
 	validatePrevote(t, cs, round, vss[0], propBlockHash)
 
 	ensurePrecommit(voteCh, height, round) // wait for precommit
