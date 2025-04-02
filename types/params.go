@@ -22,7 +22,7 @@ const (
 	BlockPartSizeBytes uint32 = 65536 // 64kB
 
 	// MaxBlockPartsCount is the maximum number of block parts.
-	MaxBlockPartsCount = (MaxBlockSizeBytes / BlockPartSizeBytes) + 1
+	MaxBlockPartsCount = (MaxBlockSizeBytes + BlockPartSizeBytes - 1) / BlockPartSizeBytes
 
 	ABCIPubKeyTypeEd25519   = ed25519.KeyType
 	ABCIPubKeyTypeSecp256k1 = secp256k1.KeyType
