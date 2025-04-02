@@ -429,6 +429,13 @@ func TestStateFullRound1(t *testing.T) {
 	propBlobParts := cs.GetRoundState().ProposalBlobParts
 	require.NotNil(t, propBlobParts, "blob parts should not be nil")
 
+	var (
+		partSize               = int(types.PartSizeBytes)
+		proposalBlobPartsCount = (len(propBlob) + partSize - 1) / partSize
+	)
+	// check that the number of blob parts is correct
+	require.Equal(t, proposalBlobPartsCount, int(propBlobParts.Total()))
+
 	ensurePrevote(voteCh, height, round) // wait for prevote
 
 	propBlockHash := cs.GetRoundState().ProposalBlock.Hash()
@@ -485,6 +492,19 @@ func TestStateFullRound2(t *testing.T) {
 
 	// we should be stuck in limbo waiting for more prevotes
 	rs := cs1.GetRoundState()
+	proposalBlob := rs.ProposalBlob
+	require.NotEmpty(t, proposalBlob, "blob should not be empty")
+
+	proposalBlobParts := rs.ProposalBlobParts
+	require.NotNil(t, proposalBlobParts, "blob parts should not be nil")
+
+	var (
+		partSize               = int(types.PartSizeBytes)
+		proposalBlobPartsCount = (len(proposalBlob) + partSize - 1) / partSize
+	)
+	// check that the number of blob parts is correct
+	require.Equal(t, proposalBlobPartsCount, int(proposalBlobParts.Total()))
+
 	propBlockHash, propPartSetHeader := rs.ProposalBlock.Hash(), rs.ProposalBlockParts.Header()
 
 	// prevote arrives from vs2:

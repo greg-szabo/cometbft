@@ -341,7 +341,7 @@ func setupChainWithChangingValidators(t *testing.T, name string, nBlocks int) (*
 	require.NoError(t, err)
 	t.Cleanup(cleanup)
 
-	partSize := types.BlockPartSizeBytes
+	partSize := types.PartSizeBytes
 
 	newRoundCh := subscribe(css[0].eventBus, types.EventQueryNewRound)
 	proposalCh := subscribe(css[0].eventBus, types.EventQueryCompleteProposal)
