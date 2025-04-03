@@ -780,7 +780,7 @@ func TestStateLockPOLRelock(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	cs1, vss := randState(4)
+	cs1, vss := randStateWithBlob(4)
 	vs2, vs3, vs4 := vss[1], vss[2], vss[3]
 	height, round := cs1.Height, cs1.Round
 
@@ -809,6 +809,10 @@ func TestStateLockPOLRelock(t *testing.T) {
 	ensureNewRound(newRoundCh, height, round)
 	ensureNewProposal(proposalCh, height, round)
 	rs := cs1.GetRoundState()
+
+	require.NotEmpty(t, rs.ProposalBlob, "blob should not be empty")
+	require.NotNil(t, rs.ProposalBlobParts, "blob parts should not be nil")
+
 	theBlockHash := rs.ProposalBlock.Hash()
 	theBlockParts := rs.ProposalBlockParts.Header()
 
@@ -858,6 +862,10 @@ func TestStateLockPOLRelock(t *testing.T) {
 	// now we're on a new round and not the proposer
 	// but we should receive the proposal
 	ensureNewProposal(proposalCh, height, round)
+
+	rs = cs1.GetRoundState()
+	require.Empty(t, rs.ProposalBlob, "blob should be empty")
+	require.Nil(t, rs.ProposalBlobParts, "blob parts should be nil")
 
 	// go to prevote, node should prevote for locked block (not the new proposal) - this is relocking
 	ensurePrevote(voteCh, height, round)
