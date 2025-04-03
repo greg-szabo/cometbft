@@ -2476,6 +2476,8 @@ func TestResetTimeoutPrecommitUponNewHeight(t *testing.T) {
 
 	ensureNewProposal(proposalCh, height, round)
 	rs := cs1.GetRoundState()
+	require.Empty(t, rs.ProposalBlob, "Proposal blob should be empty")
+	require.Nil(t, rs.ProposalBlobParts, "Proposal blob parts should be nil")
 	theBlockHash := rs.ProposalBlock.Hash()
 	theBlockParts := rs.ProposalBlockParts.Header()
 
@@ -2494,20 +2496,25 @@ func TestResetTimeoutPrecommitUponNewHeight(t *testing.T) {
 
 	ensureNewBlockHeader(newBlockHeader, height, theBlockHash)
 
-	prop, propBlock, _ := decideProposal(ctx, t, cs1, vs2, height+1, 0)
+	// new height
+	prop, propBlock, propBlob := decideProposal(ctx, t, cs1, vs2, height+1, 0)
 	propBlockParts, err := propBlock.MakePartSet(partSize)
 	require.NoError(t, err)
 
-	if err := cs1.SetProposalAndBlock(prop, propBlock, propBlockParts, "some peer"); err != nil {
+	propBlobParts := types.NewPartSetFromData(propBlob, partSize)
+
+	if err := cs1.SetProposalBlobAndBlock(prop, propBlockParts, propBlobParts, "some peer"); err != nil {
 		t.Fatal(err)
 	}
-	ensureNewProposal(proposalCh, height+1, 0)
+	ensureProposal(proposalCh, height+1, 0, prop.BlockID, prop.BlobID)
 
 	rs = cs1.GetRoundState()
 	assert.False(
 		t,
 		rs.TriggeredTimeoutPrecommit,
 		"triggeredTimeoutPrecommit should be false at the beginning of each height")
+	assert.Equal(t, rs.ProposalBlob, propBlob)
+	assert.Equal(t, rs.ProposalBlobParts.Header(), propBlobParts.Header())
 }
 
 //------------------------------------------------------------------------------------------
