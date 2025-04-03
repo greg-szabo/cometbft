@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/cometbft/cometbft/mempool"
 	"strings"
 	"testing"
 	"time"
@@ -1115,12 +1116,15 @@ func TestStateLockPOLUnlockOnUnknownBlock(t *testing.T) {
 // then a polka at round 2 that we lock on
 // then we see the polka from round 1 but shouldn't unlock
 func TestStateLockPOLSafety1(t *testing.T) {
+	app := kvstore.NewInMemoryApplication()
+	app.SetGenerateBlobs()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	cs1, vss := randStateWithBlob(4)
 	vs2, vs3, vs4 := vss[1], vss[2], vss[3]
-	height, round := cs1.Height, cs1.Round
+	height, round, chainID := cs1.Height, cs1.Round, cs1.state.ChainID
 
 	partSize := types.PartSizeBytes
 
@@ -1133,6 +1137,33 @@ func TestStateLockPOLSafety1(t *testing.T) {
 	addr := pv1.Address()
 	voteCh := subscribeToVoter(cs1, addr)
 
+	// block for round 1, from vs2, empty
+	// we build it now, to prevent timeouts
+	_, _, blockID1 := createProposalBlock(t, cs1)
+	blob1 := types.Blob(app.TestBlob())
+	blobParts1 := types.NewPartSetFromData(blob1, types.PartSizeBytes)
+	blobID1 := types.BlobID{
+		Hash:          blob1.Hash(),
+		PartSetHeader: blobParts1.Header(),
+	}
+	prop1 := types.NewProposal(
+		vs2.Height,
+		vs2.Round+1,
+		-1, /* POLRound */
+		blockID1,
+		blobID1,
+	)
+	//signProposal
+	p := prop1.ToProto()
+	err = vs2.SignProposal(chainID, p)
+	require.NoError(t, err)
+	prop1.Signature = p.Signature
+
+	// add a tx to the mempool
+	tx := kvstore.NewRandomTx(22)
+	err = assertMempool(cs1.txNotifier).CheckTx(tx, nil, mempool.TxInfo{})
+	require.NoError(t, err)
+
 	// start round and wait for propose and prevote
 	startTestRound(cs1, cs1.Height, round)
 	ensureNewRound(newRoundCh, height, round)
@@ -1142,6 +1173,9 @@ func TestStateLockPOLSafety1(t *testing.T) {
 	propBlock := rs.ProposalBlock
 	require.NotEmpty(t, rs.ProposalBlob, "blob should not be empty")
 	require.NotNil(t, rs.ProposalBlobParts, "blob parts should not be nil")
+
+	blockID := rs.Proposal.BlockID
+	require.NotEqual(t, blockID, blockID1)
 
 	ensurePrevote(voteCh, height, round)
 	validatePrevote(t, cs1, round, vss[0], propBlock.Hash())
