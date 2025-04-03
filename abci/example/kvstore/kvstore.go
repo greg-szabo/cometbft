@@ -92,7 +92,7 @@ func (app *Application) SetGenerateBlobs() {
 // TestBlob returns the blob that the app returns in PrepareProposal.
 // TestBlob is only used in testing, and is not part of the abci.Application
 // interface.
-func (app *Application) TestBlob() []byte {
+func (*Application) TestBlob() []byte {
 	return _testBlob
 }
 
