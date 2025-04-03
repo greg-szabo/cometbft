@@ -1118,7 +1118,7 @@ func TestStateLockPOLSafety1(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	cs1, vss := randState(4)
+	cs1, vss := randStateWithBlob(4)
 	vs2, vs3, vs4 := vss[1], vss[2], vss[3]
 	height, round := cs1.Height, cs1.Round
 
@@ -1140,6 +1140,8 @@ func TestStateLockPOLSafety1(t *testing.T) {
 	ensureNewProposal(proposalCh, height, round)
 	rs := cs1.GetRoundState()
 	propBlock := rs.ProposalBlock
+	require.NotEmpty(t, rs.ProposalBlob, "blob should not be empty")
+	require.NotNil(t, rs.ProposalBlobParts, "blob parts should not be nil")
 
 	ensurePrevote(voteCh, height, round)
 	validatePrevote(t, cs1, round, vss[0], propBlock.Hash())
@@ -1161,10 +1163,11 @@ func TestStateLockPOLSafety1(t *testing.T) {
 
 	t.Log("### ONTO ROUND 1")
 
-	prop, propBlock, _ := decideProposal(ctx, t, cs1, vs2, vs2.Height, vs2.Round+1)
+	prop, propBlock, propBlob := decideProposal(ctx, t, cs1, vs2, vs2.Height, vs2.Round+1)
 	propBlockHash := propBlock.Hash()
 	propBlockParts, err := propBlock.MakePartSet(partSize)
 	require.NoError(t, err)
+	propBlobParts := types.NewPartSetFromData(propBlob, types.PartSizeBytes)
 
 	incrementRound(vs2, vs3, vs4)
 
@@ -1172,7 +1175,7 @@ func TestStateLockPOLSafety1(t *testing.T) {
 	ensureNewRound(newRoundCh, height, round)
 
 	// XXX: this isnt guaranteed to get there before the timeoutPropose ...
-	if err := cs1.SetProposalAndBlock(prop, propBlock, propBlockParts, "some peer"); err != nil {
+	if err := cs1.SetProposalBlobAndBlock(prop, propBlockParts, propBlobParts, "some peer"); err != nil {
 		t.Fatal(err)
 	}
 	/*Round2
@@ -1180,9 +1183,11 @@ func TestStateLockPOLSafety1(t *testing.T) {
 	// a polka happened but we didn't see it!
 	*/
 
-	ensureNewProposal(proposalCh, height, round)
+	ensureProposal(proposalCh, height, round, prop.BlockID, prop.BlobID)
 
 	rs = cs1.GetRoundState()
+	require.Equal(t, propBlob.Hash(), rs.ProposalBlob.Hash())
+	require.Equal(t, propBlobParts.Header(), rs.ProposalBlobParts.Header())
 
 	if rs.LockedBlock != nil {
 		panic("we should not be locked!")
@@ -1216,6 +1221,12 @@ func TestStateLockPOLSafety1(t *testing.T) {
 
 	// timeout of propose
 	ensureNewTimeout(timeoutProposeCh, height, round, cs1.config.Propose(round).Nanoseconds())
+
+	rs = cs1.GetRoundState()
+	// validator did not receive the proposal for this round, therefore the blob
+	// should be absent
+	require.Empty(t, rs.ProposalBlob, "blob should be empty")
+	require.Nil(t, rs.ProposalBlobParts, "blob parts should be nil")
 
 	// finish prevote
 	ensurePrevote(voteCh, height, round)
