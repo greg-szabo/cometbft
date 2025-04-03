@@ -1587,7 +1587,7 @@ func TestSetValidBlockOnDelayedProposal(t *testing.T) {
 	ensurePrevote(voteCh, height, round)
 	validatePrevote(t, cs1, round, vss[0], nil)
 
-	prop, propBlock, _ := decideProposal(ctx, t, cs1, vs2, vs2.Height, vs2.Round+1)
+	prop, propBlock, propBlob := decideProposal(ctx, t, cs1, vs2, vs2.Height, vs2.Round+1)
 	propBlockHash := propBlock.Hash()
 	propBlockParts, err := propBlock.MakePartSet(partSize)
 	require.NoError(t, err)
@@ -1601,11 +1601,13 @@ func TestSetValidBlockOnDelayedProposal(t *testing.T) {
 	ensurePrecommit(voteCh, height, round)
 	validatePrecommit(t, cs1, round, -1, vss[0], nil, nil)
 
-	if err := cs1.SetProposalAndBlock(prop, propBlock, propBlockParts, "some peer"); err != nil {
+	blobPartSet := types.NewPartSetFromData(propBlob, types.PartSizeBytes)
+
+	if err := cs1.SetProposalBlobAndBlock(prop, propBlockParts, blobPartSet, "some peer"); err != nil {
 		t.Fatal(err)
 	}
 
-	ensureNewProposal(proposalCh, height, round)
+	ensureProposal(proposalCh, height, round, prop.BlockID, prop.BlobID)
 	rs := cs1.GetRoundState()
 
 	assert.True(t, bytes.Equal(rs.ValidBlock.Hash(), propBlockHash))
