@@ -231,7 +231,7 @@ func TestStateBadProposal(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	cs1, vss := randState(2)
+	cs1, vss := randStateWithBlob(2)
 	height, round := cs1.Height, cs1.Round
 	vs2 := vss[1]
 
@@ -240,7 +240,7 @@ func TestStateBadProposal(t *testing.T) {
 	proposalCh := subscribe(cs1.eventBus, types.EventQueryCompleteProposal)
 	voteCh := subscribe(cs1.eventBus, types.EventQueryVote)
 
-	propBlock, _, err := cs1.createProposalBlock(ctx) // changeProposer(t, cs1, vs2)
+	propBlock, propBlob, err := cs1.createProposalBlock(ctx) // changeProposer(t, cs1, vs2)
 	require.NoError(t, err)
 
 	// make the second validator the proposer by incrementing round
@@ -257,7 +257,12 @@ func TestStateBadProposal(t *testing.T) {
 	propBlockParts, err := propBlock.MakePartSet(partSize)
 	require.NoError(t, err)
 	blockID := types.BlockID{Hash: propBlock.Hash(), PartSetHeader: propBlockParts.Header()}
-	proposal := types.NewProposal(vs2.Height, round, -1, blockID, types.BlobID{})
+	propBlobParts := types.NewPartSetFromData(propBlob, partSize)
+	blobID := types.BlobID{
+		Hash:          propBlob.Hash(),
+		PartSetHeader: propBlobParts.Header(),
+	}
+	proposal := types.NewProposal(vs2.Height, round, -1, blockID, blobID)
 	p := proposal.ToProto()
 	if err := vs2.SignProposal(cs1.state.ChainID, p); err != nil {
 		t.Fatal("failed to sign bad proposal", err)
@@ -266,7 +271,7 @@ func TestStateBadProposal(t *testing.T) {
 	proposal.Signature = p.Signature
 
 	// set the proposal block
-	if err := cs1.SetProposalAndBlock(proposal, propBlock, propBlockParts, "some peer"); err != nil {
+	if err := cs1.SetProposalBlobAndBlock(proposal, propBlockParts, propBlobParts, "some peer"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -274,7 +279,11 @@ func TestStateBadProposal(t *testing.T) {
 	startTestRound(cs1, height, round)
 
 	// wait for proposal
-	ensureProposal(proposalCh, height, round, blockID, proposal.BlobID)
+	ensureProposal(proposalCh, height, round, blockID, blobID)
+
+	rs := cs1.GetRoundState()
+	require.Equal(t, rs.ProposalBlob, propBlob)
+	require.Equal(t, rs.ProposalBlobParts, propBlobParts)
 
 	// wait for prevote
 	ensurePrevote(voteCh, height, round)
