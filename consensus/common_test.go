@@ -28,7 +28,6 @@ import (
 	"github.com/cometbft/cometbft/libs/log"
 	cmtos "github.com/cometbft/cometbft/libs/os"
 	cmtpubsub "github.com/cometbft/cometbft/libs/pubsub"
-	cmtrand "github.com/cometbft/cometbft/libs/rand"
 	cmtsync "github.com/cometbft/cometbft/libs/sync"
 	mempl "github.com/cometbft/cometbft/mempool"
 	"github.com/cometbft/cometbft/p2p"
@@ -273,8 +272,7 @@ func decideProposal(
 	round int32,
 ) (*types.Proposal, *types.Block, types.Blob) {
 	cs1.mtx.Lock()
-	block, _, err := cs1.createProposalBlock(ctx)
-	require.NoError(t, err)
+	block, _, propBlockID, blob := createProposalBlockAndBlob(t, cs1)
 	blockParts, err := block.MakePartSet(types.PartSizeBytes)
 	require.NoError(t, err)
 	validRound := cs1.ValidRound
@@ -286,7 +284,6 @@ func decideProposal(
 	}
 
 	var (
-		blob      = types.Blob(cmtrand.Bytes(42))
 		blobParts = types.NewPartSetFromData(blob, types.PartSizeBytes)
 		blobID    = types.BlobID{
 			Hash:          blob.Hash(),
