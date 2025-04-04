@@ -432,13 +432,13 @@ func TestReactorRecordsVotesAndBlockPartsAndBlobParts(t *testing.T) {
 	})
 
 	// Get peer
-	peer := reactors[1].Switch.Peers().Copy()[0]
+	peer := reactors[1].Switch.Peers().List()[0]
 	// Get peer state
 	ps := peer.Get(types.PeerStateKey).(*PeerState)
 
 	assert.Greater(t, ps.VotesSent(), 0, "number of votes sent should have increased")
-	assert.Greater(t, ps.BlockPartsSent(), 0, "number of votes sent should have increased")
-	assert.Greater(t, ps.BlobPartsSent(), 0, "number of votes sent should have increased")
+	assert.Greater(t, ps.BlockPartsSent(), 0, "number of block parts sent should have increased")
+	assert.Greater(t, ps.BlobPartsSent(), 0, "number of blob parts sent should have increased")
 }
 
 // Test we record stats about votes and block parts from other peers.
@@ -460,7 +460,7 @@ func TestReactorRecordsVotesAndBlockParts(t *testing.T) {
 	ps := peer.Get(types.PeerStateKey).(*PeerState)
 
 	assert.Equal(t, true, ps.VotesSent() > 0, "number of votes sent should have increased")
-	assert.Equal(t, true, ps.BlockPartsSent() > 0, "number of votes sent should have increased")
+	assert.Equal(t, true, ps.BlockPartsSent() > 0, "number of block parts sent should have increased")
 }
 
 //-------------------------------------------------------------
