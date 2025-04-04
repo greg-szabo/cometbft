@@ -1116,9 +1116,6 @@ func TestStateLockPOLUnlockOnUnknownBlock(t *testing.T) {
 // then a polka at round 2 that we lock on
 // then we see the polka from round 1 but shouldn't unlock
 func TestStateLockPOLSafety1(t *testing.T) {
-	app := kvstore.NewInMemoryApplication()
-	app.SetGenerateBlobs()
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -1139,8 +1136,7 @@ func TestStateLockPOLSafety1(t *testing.T) {
 
 	// block for round 1, from vs2, empty
 	// we build it now, to prevent timeouts
-	_, _, blockID1 := createProposalBlock(t, cs1)
-	blob1 := types.Blob(app.TestBlob())
+	_, _, blockID1, blob1 := createProposalBlockAndBlob(t, cs1)
 	blobParts1 := types.NewPartSetFromData(blob1, types.PartSizeBytes)
 	blobID1 := types.BlobID{
 		Hash:          blob1.Hash(),
