@@ -874,6 +874,7 @@ func TestStateLockPOLRelock(t *testing.T) {
 	ensureNewProposal(proposalCh, height, round)
 
 	rs = cs1.GetRoundState()
+	require.NotNil(t, rs.ProposalBlob, "blob should never be nil")
 	require.Empty(t, rs.ProposalBlob, "blob should be empty")
 	require.Nil(t, rs.ProposalBlobParts, "blob parts should be nil")
 
@@ -1264,6 +1265,7 @@ func TestStateLockPOLSafety1(t *testing.T) {
 	rs = cs1.GetRoundState()
 	// validator did not receive the proposal for this round, therefore the blob
 	// should be absent
+	require.NotNil(t, rs.ProposalBlob, "blob should never be nil")
 	require.Empty(t, rs.ProposalBlob, "blob should be empty")
 	require.Nil(t, rs.ProposalBlobParts, "blob parts should be nil")
 
@@ -1479,6 +1481,7 @@ func TestProposeValidBlock(t *testing.T) {
 	rs = cs1.GetRoundState()
 	// validator did not receive the proposal for this round, therefore the blob
 	// should be absent
+	require.NotNil(t, rs.ProposalBlob, "blob should never be nil")
 	require.Empty(t, rs.ProposalBlob, "blob should be empty")
 	require.Nil(t, rs.ProposalBlobParts, "blob parts should be nil")
 	assert.True(t, bytes.Equal(rs.ProposalBlock.Hash(), propBlockHash))
@@ -2481,6 +2484,7 @@ func TestResetTimeoutPrecommitUponNewHeight(t *testing.T) {
 
 	ensureNewProposal(proposalCh, height, round)
 	rs := cs1.GetRoundState()
+	require.NotNil(t, rs.ProposalBlob, "blob should never be nil")
 	require.Empty(t, rs.ProposalBlob, "Proposal blob should be empty")
 	require.Nil(t, rs.ProposalBlobParts, "Proposal blob parts should be nil")
 	theBlockHash := rs.ProposalBlock.Hash()
