@@ -2462,7 +2462,7 @@ func TestResetTimeoutPrecommitUponNewHeight(t *testing.T) {
 	defer cancel()
 
 	config.Consensus.SkipTimeoutCommit = false
-	cs1, vss := randState(4)
+	cs1, vss := randStateWithBlob(4)
 
 	vs2, vs3, vs4 := vss[1], vss[2], vss[3]
 	height, round := cs1.Height, cs1.Round
@@ -2484,9 +2484,8 @@ func TestResetTimeoutPrecommitUponNewHeight(t *testing.T) {
 
 	ensureNewProposal(proposalCh, height, round)
 	rs := cs1.GetRoundState()
-	require.NotNil(t, rs.ProposalBlob, "blob should never be nil")
-	require.Empty(t, rs.ProposalBlob, "Proposal blob should be empty")
-	require.Nil(t, rs.ProposalBlobParts, "Proposal blob parts should be nil")
+	require.NotEmpty(t, rs.ProposalBlob, "Proposal blob should not be empty")
+	require.NotNil(t, rs.ProposalBlobParts, "Proposal blob parts should not be nil")
 	theBlockHash := rs.ProposalBlock.Hash()
 	theBlockParts := rs.ProposalBlockParts.Header()
 
