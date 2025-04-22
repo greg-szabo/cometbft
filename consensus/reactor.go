@@ -1545,7 +1545,6 @@ func init() {
 	cmtjson.RegisterType(&VoteSetMaj23Message{}, "tendermint/VoteSetMaj23")
 	cmtjson.RegisterType(&VoteSetBitsMessage{}, "tendermint/VoteSetBits")
 	cmtjson.RegisterType(&BlobPartMessage{}, "tendermint/BlobPart")
-	cmtjson.RegisterType(&HasProposalBlobPartMessage{}, "tendermint/HasProposalBlobPart")
 }
 
 //-------------------------------------
