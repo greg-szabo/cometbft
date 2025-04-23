@@ -1124,7 +1124,7 @@ func TestCreateProposalWithBlob(t *testing.T) {
 
 	var (
 		app          = &abcimocks.Application{}
-		proposalResp = &abci.PrepareProposalResponse{
+		proposalResp = &abci.ResponsePrepareProposal{
 			Blob: []byte("blob"),
 		}
 	)
@@ -1140,7 +1140,7 @@ func TestCreateProposalWithBlob(t *testing.T) {
 	defer proxyApp.Stop() //nolint:errcheck // ignore for tests
 
 	var (
-		state, stateDB, privVals = makeState(10, height, chainID)
+		state, stateDB, privVals = makeState(10, height)
 		storeOpts                = sm.StoreOptions{DiscardABCIResponses: false}
 		stateStore               = sm.NewStore(stateDB, storeOpts)
 		mp                       = &mpmocks.Mempool{}
@@ -1172,7 +1172,7 @@ func TestCreateProposalWithBlob(t *testing.T) {
 		)
 		proposerAddr, _ = state.Validators.GetByIndex(0)
 	)
-	commit, err := makeValidCommit(
+	commit, _, err := makeValidCommit(
 		height,
 		types.BlockID{},
 		state.Validators,

@@ -1287,8 +1287,8 @@ func (cs *State) defaultDecideProposal(height int64, round int32) {
 				var (
 					part        = blobParts.GetPart(int(i))
 					blobPartMsg = msgInfo{
-						Msg:         &BlobPartMessage{cs.Height, cs.Round, part},
-						PeerID:      "",
+						Msg:    &BlobPartMessage{cs.Height, cs.Round, part},
+						PeerID: "",
 					}
 				)
 				cs.sendInternalMessage(blobPartMsg)
