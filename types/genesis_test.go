@@ -71,6 +71,9 @@ func TestGenesisGood(t *testing.T) {
 			"app_hash":"",
 			"app_state":{"account_owner": "Bob"},
 			"consensus_params": {
+				"validator": {"pub_key_types":["secp256k1"]},
+				"evidence": {"max_age_num_blocks": "100", "max_age_duration": "10"},
+				"block": {"max_bytes": "819200"},
 				"blob": {"max_bytes": "819200"}
 			}
 		}`,

@@ -407,7 +407,7 @@ func TestStateOversizedBlock(t *testing.T) {
 
 // propose, prevote, and precommit a block
 func TestStateFullRound1(t *testing.T) {
-	cs, vss := randState(1)
+	cs, vss := randStateWithBlob(1)
 	height, round := cs.Height, cs.Round
 
 	// NOTE: buffer capacity of 0 ensures we can validate prevote and last commit
@@ -492,7 +492,7 @@ func TestStateFullRoundNil(t *testing.T) {
 // run through propose, prevote, precommit commit with two validators
 // where the first validator has to wait for votes from the second
 func TestStateFullRound2(t *testing.T) {
-	cs1, vss := randState(2)
+	cs1, vss := randStateWithBlob(2)
 	vs2 := vss[1]
 	height, round := cs1.Height, cs1.Round
 
@@ -548,7 +548,7 @@ func TestStateLockNoPOL(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	cs1, vss := randState(2)
+	cs1, vss := randStateWithBlob(2)
 	vs2 := vss[1]
 	height, round := cs1.Height, cs1.Round
 
