@@ -1201,8 +1201,11 @@ func (cs *State) isProposer(address []byte) bool {
 }
 
 func (cs *State) defaultDecideProposal(height int64, round int32) {
-	var block *types.Block
-	var blockParts *types.PartSet
+	var (
+		block      *types.Block
+		blockParts *types.PartSet
+		blob       types.Blob
+	)
 
 	// Decide on block
 	if cs.ValidBlock != nil {
@@ -1211,7 +1214,7 @@ func (cs *State) defaultDecideProposal(height int64, round int32) {
 	} else {
 		// Create a new proposal block from state/txs from the mempool.
 		var err error
-		block, err = cs.createProposalBlock(context.TODO())
+		block, blob, err = cs.createProposalBlock(context.TODO())
 		if err != nil {
 			cs.Logger.Error("unable to create proposal block", "error", err)
 			return
@@ -1233,9 +1236,22 @@ func (cs *State) defaultDecideProposal(height int64, round int32) {
 	}
 
 	// Make proposal
-	propBlockID := types.BlockID{Hash: block.Hash(), PartSetHeader: blockParts.Header()}
-	proposal := types.NewProposal(height, round, cs.ValidRound, propBlockID)
-	p := proposal.ToProto()
+
+	var (
+		// TODO: create blob parts, BlobID, send blob parts.
+		_           = blob
+		propBlockID = types.BlockID{
+			Hash:          block.Hash(),
+			PartSetHeader: blockParts.Header(),
+		}
+		proposal = types.NewProposal(
+			height,
+			round,
+			cs.ValidRound,
+			propBlockID,
+		)
+		p = proposal.ToProto()
+	)
 	if err := cs.privValidator.SignProposal(cs.state.ChainID, p); err == nil {
 		proposal.Signature = p.Signature
 
@@ -1275,12 +1291,15 @@ func (cs *State) isProposalComplete() bool {
 //
 // NOTE: keep it side-effect free for clarity.
 // CONTRACT: cs.privValidator is not nil.
-func (cs *State) createProposalBlock(ctx context.Context) (*types.Block, error) {
+func (cs *State) createProposalBlock(
+	ctx context.Context,
+) (*types.Block, types.Blob, error) {
 	if cs.privValidator == nil {
-		return nil, errors.New("entered createProposalBlock with privValidator being nil")
+		return nil, nil, errors.New("entered createProposalBlock with privValidator being nil")
 	}
 
-	// TODO(sergio): wouldn't it be easier if CreateProposalBlock accepted cs.LastCommit directly?
+	// TODO(sergio): wouldn't it be easier if CreateProposalBlock accepted
+	// cs.LastCommit directly?
 	var lastExtCommit *types.ExtendedCommit
 	switch {
 	case cs.Height == cs.state.InitialHeight:
@@ -1293,22 +1312,29 @@ func (cs *State) createProposalBlock(ctx context.Context) (*types.Block, error) 
 		lastExtCommit = cs.LastCommit.MakeExtendedCommit(cs.state.ConsensusParams.ABCI)
 
 	default: // This shouldn't happen.
-		return nil, errors.New("propose step; cannot propose anything without commit for the previous block")
+		return nil, nil, errors.New("propose step; cannot propose anything without commit for the previous block")
 	}
 
 	if cs.privValidatorPubKey == nil {
 		// If this node is a validator & proposer in the current round, it will
 		// miss the opportunity to create a block.
-		return nil, fmt.Errorf("propose step; empty priv validator public key, error: %w", errPubKeyIsNotSet)
+		return nil, nil, fmt.Errorf("propose step; empty priv validator public key, error: %w", errPubKeyIsNotSet)
 	}
 
 	proposerAddr := cs.privValidatorPubKey.Address()
 
-	ret, err := cs.blockExec.CreateProposalBlock(ctx, cs.Height, cs.state, lastExtCommit, proposerAddr)
+	block, blob, err := cs.blockExec.CreateProposalBlock(
+		ctx,
+		cs.Height,
+		cs.state,
+		lastExtCommit,
+		proposerAddr,
+	)
 	if err != nil {
 		panic(err)
 	}
-	return ret, nil
+
+	return block, blob, nil
 }
 
 // Enter: `timeoutPropose` after entering Propose.
