@@ -18,8 +18,10 @@ import (
 var (
 	testProposal *Proposal
 	pbp          *cmtproto.Proposal
-	testBlockID  BlockID
-	testBlobID   BlobID
+	//nolint:unused
+	testBlockID BlockID
+	//nolint:unused
+	testBlobID BlobID
 )
 
 func init() {

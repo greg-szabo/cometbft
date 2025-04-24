@@ -3,10 +3,11 @@ package consensus
 import (
 	"bytes"
 	"crypto/rand"
-	"github.com/cometbft/cometbft/crypto/tmhash"
-	cmtrand "github.com/cometbft/cometbft/libs/rand"
 	"os"
 	"path/filepath"
+
+	"github.com/cometbft/cometbft/crypto/tmhash"
+	cmtrand "github.com/cometbft/cometbft/libs/rand"
 
 	// "sync"
 	"testing"
@@ -112,7 +113,7 @@ func TestWALEncoderDecoder(t *testing.T) {
 		{Time: now, Msg: msgInfo{Msg: &BlobPartMessage{
 			Height: 1,
 			Round:  1,
-			Part:   &cmttypes.Part{
+			Part: &cmttypes.Part{
 				Index: 1,
 				Bytes: []byte("blob"),
 				Proof: merkle.Proof{

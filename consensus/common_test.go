@@ -224,6 +224,7 @@ func startTestRound(cs *State, height int64, round int32) {
 	cs.startRoutines(0)
 }
 
+//nolint:unused
 func createProposalBlockWithTime(t *testing.T, cs *State, time time.Time) (*types.Block, *types.PartSet, types.BlockID) {
 	t.Helper()
 	block, _, err := cs.createProposalBlock(context.Background())
@@ -237,6 +238,7 @@ func createProposalBlockWithTime(t *testing.T, cs *State, time time.Time) (*type
 	return block, blockParts, blockID
 }
 
+//nolint:unused
 func createProposalBlock(t *testing.T, cs *State) (*types.Block, *types.PartSet, types.BlockID) {
 	t.Helper()
 	return createProposalBlockWithTime(t, cs, time.Time{})
