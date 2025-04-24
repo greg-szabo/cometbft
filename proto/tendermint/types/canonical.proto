@@ -12,6 +12,13 @@ message CanonicalBlockID {
   CanonicalPartSetHeader part_set_header = 2 [(gogoproto.nullable) = false];
 }
 
+// CanonicalBlobID is a canonical representation of a BlobID, which gets
+// serialized and signed.
+message CanonicalBlobID {
+  bytes                  hash            = 1;
+  CanonicalPartSetHeader part_set_header = 2 [(gogoproto.nullable) = false];
+}
+
 message CanonicalPartSetHeader {
   uint32 total = 1;
   bytes  hash  = 2;
