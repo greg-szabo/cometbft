@@ -166,6 +166,7 @@ func (blockExec *BlockExecutor) CreateProposalBlock(
 func (blockExec *BlockExecutor) ProcessProposal(
 	block *types.Block,
 	state State,
+	blob types.Blob,
 ) (bool, error) {
 	resp, err := blockExec.proxyApp.ProcessProposal(context.TODO(), &abci.RequestProcessProposal{
 		Hash:               block.Header.Hash(),
@@ -176,6 +177,7 @@ func (blockExec *BlockExecutor) ProcessProposal(
 		Misbehavior:        block.Evidence.Evidence.ToABCI(),
 		ProposerAddress:    block.ProposerAddress,
 		NextValidatorsHash: block.NextValidatorsHash,
+		Blob:               blob,
 	})
 	if err != nil {
 		return false, err

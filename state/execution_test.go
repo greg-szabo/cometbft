@@ -420,7 +420,7 @@ func TestProcessProposal(t *testing.T) {
 		Height:     height - 1,
 		Signatures: lastCommitSig,
 	})
-
+	blob := []byte("blob")
 	block1.Txs = txs
 
 	expectedRpp := &abci.RequestProcessProposal{
@@ -435,11 +435,13 @@ func TestProcessProposal(t *testing.T) {
 		},
 		NextValidatorsHash: block1.NextValidatorsHash,
 		ProposerAddress:    block1.ProposerAddress,
+		Blob:               blob,
 	}
 
-	acceptBlock, err := blockExec.ProcessProposal(block1, state)
+	acceptBlock, err := blockExec.ProcessProposal(block1, state, blob)
 	require.NoError(t, err)
 	require.True(t, acceptBlock)
+
 	app.AssertExpectations(t)
 	app.AssertCalled(t, "ProcessProposal", context.TODO(), expectedRpp)
 }
