@@ -978,6 +978,41 @@ func TestBlockPartMessageValidateBasic(t *testing.T) {
 	assert.Equal(t, true, message.ValidateBasic() != nil, "Validate Basic had an unexpected result")
 }
 
+func TestBlobPartMessageValidateBasic(t *testing.T) {
+	testPart := new(types.Part)
+	testPart.Proof.LeafHash = tmhash.Sum([]byte("leaf"))
+	testCases := []struct {
+		testName      string
+		messageHeight int64
+		messageRound  int32
+		messagePart   *types.Part
+		expectErr     bool
+	}{
+		{"Valid Message", 0, 0, testPart, false},
+		{"Invalid Message", -1, 0, testPart, true},
+		{"Invalid Message", 0, -1, testPart, true},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
+			message := BlobPartMessage{
+				Height: tc.messageHeight,
+				Round:  tc.messageRound,
+				Part:   tc.messagePart,
+			}
+
+			err := message.ValidateBasic()
+			msg := "Validate Basic had an unexpected result"
+			assert.Equal(t, tc.expectErr, err != nil, msg)
+		})
+	}
+
+	message := BlobPartMessage{Height: 0, Round: 0, Part: new(types.Part)}
+	message.Part.Index = 1
+
+	require.Error(t, message.ValidateBasic())
+}
+
 func TestHasVoteMessageValidateBasic(t *testing.T) {
 	const (
 		validSignedMsgType   cmtproto.SignedMsgType = 0x01
@@ -1104,8 +1139,10 @@ func TestVoteSetBitsMessageValidateBasic(t *testing.T) {
 
 func TestMarshalJSONPeerState(t *testing.T) {
 	ps := NewPeerState(nil)
+
 	data, err := json.Marshal(ps)
 	require.NoError(t, err)
+
 	require.JSONEq(t, `{
 		"round_state":{
 			"height": "0",
@@ -1127,7 +1164,8 @@ func TestMarshalJSONPeerState(t *testing.T) {
 		},
 		"stats":{
 			"votes":"0",
-			"block_parts":"0"}
+			"block_parts":"0",
+			"blob_parts":"0"}
 		}`, string(data))
 }
 

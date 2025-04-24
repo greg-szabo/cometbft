@@ -46,12 +46,32 @@ func TestMsgToProto(t *testing.T) {
 	pbParts, err := parts.ToProto()
 	require.NoError(t, err)
 
+	blobPsh := types.PartSetHeader{
+		Total: 1,
+		Hash:  cmtrand.Bytes(32),
+	}
+	blobPart := types.Part{
+		Index: 1,
+		Bytes: []byte("blob"),
+		Proof: merkle.Proof{
+			Total:    1,
+			Index:    1,
+			LeafHash: cmtrand.Bytes(32),
+			Aunts:    [][]byte{},
+		},
+	}
+	blobID := types.BlobID{
+		Hash:          cmtrand.Bytes(32),
+		PartSetHeader: blobPsh,
+	}
+
 	proposal := types.Proposal{
 		Type:      cmtproto.ProposalType,
 		Height:    1,
 		Round:     1,
 		POLRound:  1,
 		BlockID:   bi,
+		BlobID:    blobID,
 		Timestamp: time.Now(),
 		Signature: cmtrand.Bytes(20),
 	}
@@ -69,6 +89,7 @@ func TestMsgToProto(t *testing.T) {
 		time.Now(),
 	)
 	pbVote := vote.ToProto()
+	pbBlobPart, err := blobPart.ToProto()
 
 	testsCases := []struct {
 		testName string
@@ -167,6 +188,17 @@ func TestMsgToProto(t *testing.T) {
 			Type:    1,
 			BlockID: pbBi,
 			Votes:   *pbBits,
+		},
+
+			false},
+		{"successful BlobPartMessage", &BlobPartMessage{
+			Height: 42,
+			Round:  1,
+			Part:   &blobPart,
+		}, &cmtcons.BlobPart{
+			Height: 42,
+			Round:  1,
+			Part:   *pbBlobPart,
 		},
 
 			false},
