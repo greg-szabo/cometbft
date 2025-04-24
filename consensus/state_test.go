@@ -1323,10 +1323,11 @@ func TestStateLockPOLSafety2(t *testing.T) {
 	prevotes := signVotes(cmtproto.PrevoteType, propBlockHash0, propBlockParts0.Header(), false, vs2, vs3, vs4)
 
 	// the block for round 1
-	prop1, propBlock1, _ := decideProposal(ctx, t, cs1, vs2, vs2.Height, vs2.Round+1)
+	prop1, propBlock1, blob := decideProposal(ctx, t, cs1, vs2, vs2.Height, vs2.Round+1)
 	propBlockHash1 := propBlock1.Hash()
 	propBlockParts1, err := propBlock1.MakePartSet(partSize)
 	require.NoError(t, err)
+	propBlobParts1 := types.NewPartSetFromData(blob, types.PartSizeBytes)
 
 	incrementRound(vs2, vs3, vs4)
 
@@ -1336,10 +1337,10 @@ func TestStateLockPOLSafety2(t *testing.T) {
 	startTestRound(cs1, height, round)
 	ensureNewRound(newRoundCh, height, round)
 
-	if err := cs1.SetProposalAndBlock(prop1, propBlock1, propBlockParts1, "some peer"); err != nil {
+	if err := cs1.SetProposalBlobAndBlock(prop1, propBlockParts1, propBlobParts1, "some peer"); err != nil {
 		t.Fatal(err)
 	}
-	ensureNewProposal(proposalCh, height, round)
+	ensureProposal(proposalCh, height, round, prop1.BlockID, prop1.BlobID)
 
 	ensurePrevote(voteCh, height, round)
 	validatePrevote(t, cs1, round, vss[0], propBlockHash1)
