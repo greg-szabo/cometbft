@@ -37,7 +37,7 @@ var (
 	ErrInvalidProposalPOLRound    = errors.New("error invalid proposal POL round")
 	ErrAddingVote                 = errors.New("error adding vote")
 	ErrSignatureFoundInPastBlocks = errors.New("found signature from the same key")
-	ErrProposalTooManyParts       = errors.New("proposal block has too many parts")
+	ErrProposalTooManyBlockParts  = errors.New("proposal block has too many parts")
 	ErrProposalTooManyBlobParts   = errors.New("proposal blob has too many parts")
 
 	errPubKeyIsNotSet = errors.New("pubkey is not set. Look for \"Can't get private validator pubkey\" errors")
@@ -518,7 +518,6 @@ func (cs *State) AddProposalBlobPart(height int64, round int32, part *types.Part
 		cs.peerMsgQueue <- msgInfo{&BlobPartMessage{height, round, part}, peerID}
 	}
 
-	// TODO: wait for event?!
 	return nil
 }
 
@@ -2072,7 +2071,7 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 		maxBytes = int64(types.MaxBlockSizeBytes)
 	}
 	if int64(proposal.BlockID.PartSetHeader.Total) > (maxBytes-1)/int64(types.PartSizeBytes)+1 {
-		return ErrProposalTooManyParts
+		return ErrProposalTooManyBlockParts
 	}
 
 	// Validate the proposed blob size, derived from its PartSetHeader
@@ -2175,6 +2174,10 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		cs.Logger.Info("received complete proposal block", "height", cs.ProposalBlock.Height, "hash", cs.ProposalBlock.Hash())
 
 		// Both blocks and blobs need to be complete to fire the event.
+		// It is safe to fire the event even if ProposalBlobParts is nil.
+		// By this point we must have received the Proposal, and if it included a blob,
+		// we would have initialized ProposalBlobParts.
+		// A nil slice here therefore means "no blob in the proposal".
 		if cs.ProposalBlobParts == nil || cs.ProposalBlobParts.IsComplete() {
 			if err := cs.eventBus.PublishEventCompleteProposal(cs.CompleteProposalEvent()); err != nil {
 				cs.Logger.Error("Failed publishing event complete proposal", "err", err)
@@ -2190,7 +2193,6 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 func (cs *State) addProposalBlobPart(msg *BlobPartMessage, peerID p2p.ID) (added bool, err error) {
 	height, round, part := msg.Height, msg.Round, msg.Part
 
-	// Blobs might be reused, so round mismatch is OK
 	if cs.Height != height {
 		cs.Logger.Debug("Received blob part from wrong height", "height", height, "round", round)
 		// Todo: Implement metrics
@@ -2254,7 +2256,6 @@ func (cs *State) addProposalBlobPart(msg *BlobPartMessage, peerID p2p.ID) (added
 		// We do not need to proto decode the blob as it is bytes.
 		cs.ProposalBlob = blob
 
-		// NOTE: it's possible to receive complete proposal blobs for future rounds without having the proposal
 		cs.Logger.Info("Received complete proposal blob", "hash", cs.ProposalBlob.Hash())
 
 		// Both blocks and blobs need to be complete to fire the event.
