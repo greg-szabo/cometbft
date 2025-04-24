@@ -802,6 +802,7 @@ func TestStateLockPOLRelock(t *testing.T) {
 	require.NoError(t, err)
 	addr := pv1.Address()
 	voteCh := subscribeToVoter(cs1, addr)
+	lockCh := subscribe(cs1.eventBus, types.EventQueryLock)
 	newRoundCh := subscribe(cs1.eventBus, types.EventQueryNewRound)
 	newBlockCh := subscribe(cs1.eventBus, types.EventQueryNewBlockHeader)
 
@@ -829,6 +830,10 @@ func TestStateLockPOLRelock(t *testing.T) {
 	ensurePrevote(voteCh, height, round) // prevote
 
 	signAddVotes(cs1, cmtproto.PrevoteType, theBlockHash, theBlockParts, false, vs2, vs3, vs4)
+
+	// check that the validator generates a Lock event.
+	// ensureLock in CometBFT v1
+	ensureNewEvent(lockCh, height, round, ensureTimeout, "Timeout expired while waiting for LockValue event")
 
 	ensurePrecommit(voteCh, height, round) // our precommit
 	// the proposed block should now be locked and our precommit added

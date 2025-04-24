@@ -284,12 +284,17 @@ func decideProposal(
 	}
 
 	var (
+		blobParts *types.PartSet
+		blobID    = types.BlobID{}
+	)
+
+	if !blob.IsNil() {
 		blobParts = types.NewPartSetFromData(blob, types.PartSizeBytes)
-		blobID    = types.BlobID{
+		blobID = types.BlobID{
 			Hash:          blob.Hash(),
 			PartSetHeader: blobParts.Header(),
 		}
-	)
+	}
 
 	// Make proposal
 	polRound, propBlockID := validRound, types.BlockID{Hash: block.Hash(), PartSetHeader: blockParts.Header()}
