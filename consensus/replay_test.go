@@ -371,13 +371,13 @@ func setupChainWithChangingValidators(t *testing.T, name string, nBlocks int) (*
 	newValidatorTx1 := kvstore.MakeValSetChangeTx(valPubKey1ABCI, testMinPower)
 	err = assertMempool(css[0].txNotifier).CheckTx(newValidatorTx1, nil, mempool.TxInfo{})
 	assert.NoError(t, err)
-	propBlock, err := css[0].createProposalBlock(ctx) // changeProposer(t, cs1, vs2)
+	propBlock, _, err := css[0].createProposalBlock(ctx) // changeProposer(t, cs1, vs2)
 	require.NoError(t, err)
 	propBlockParts, err := propBlock.MakePartSet(partSize)
 	require.NoError(t, err)
 	blockID := types.BlockID{Hash: propBlock.Hash(), PartSetHeader: propBlockParts.Header()}
 
-	proposal := types.NewProposal(vss[1].Height, round, -1, blockID)
+	proposal := types.NewProposal(vss[1].Height, round, -1, blockID, types.BlobID{})
 	p := proposal.ToProto()
 	if err := vss[1].SignProposal(test.DefaultTestChainID, p); err != nil {
 		t.Fatal("failed to sign bad proposal", err)
@@ -403,13 +403,13 @@ func setupChainWithChangingValidators(t *testing.T, name string, nBlocks int) (*
 	updateValidatorTx1 := kvstore.MakeValSetChangeTx(updatePubKey1ABCI, 25)
 	err = assertMempool(css[0].txNotifier).CheckTx(updateValidatorTx1, nil, mempool.TxInfo{})
 	assert.NoError(t, err)
-	propBlock, err = css[0].createProposalBlock(ctx) // changeProposer(t, cs1, vs2)
+	propBlock, _, err = css[0].createProposalBlock(ctx) // changeProposer(t, cs1, vs2)
 	require.NoError(t, err)
 	propBlockParts, err = propBlock.MakePartSet(partSize)
 	require.NoError(t, err)
 	blockID = types.BlockID{Hash: propBlock.Hash(), PartSetHeader: propBlockParts.Header()}
 
-	proposal = types.NewProposal(vss[2].Height, round, -1, blockID)
+	proposal = types.NewProposal(vss[2].Height, round, -1, blockID, types.BlobID{})
 	p = proposal.ToProto()
 	if err := vss[2].SignProposal(test.DefaultTestChainID, p); err != nil {
 		t.Fatal("failed to sign bad proposal", err)
@@ -442,7 +442,7 @@ func setupChainWithChangingValidators(t *testing.T, name string, nBlocks int) (*
 	newValidatorTx3 := kvstore.MakeValSetChangeTx(newVal3ABCI, testMinPower)
 	err = assertMempool(css[0].txNotifier).CheckTx(newValidatorTx3, nil, mempool.TxInfo{})
 	assert.NoError(t, err)
-	propBlock, err = css[0].createProposalBlock(ctx) // changeProposer(t, cs1, vs2)
+	propBlock, _, err = css[0].createProposalBlock(ctx) // changeProposer(t, cs1, vs2)
 	require.NoError(t, err)
 	propBlockParts, err = propBlock.MakePartSet(partSize)
 	require.NoError(t, err)
@@ -468,7 +468,7 @@ func setupChainWithChangingValidators(t *testing.T, name string, nBlocks int) (*
 
 	selfIndex := valIndexFn(0)
 
-	proposal = types.NewProposal(vss[3].Height, round, -1, blockID)
+	proposal = types.NewProposal(vss[3].Height, round, -1, blockID, types.BlobID{})
 	p = proposal.ToProto()
 	if err := vss[3].SignProposal(test.DefaultTestChainID, p); err != nil {
 		t.Fatal("failed to sign bad proposal", err)
@@ -519,7 +519,7 @@ func setupChainWithChangingValidators(t *testing.T, name string, nBlocks int) (*
 	removeValidatorTx3 := kvstore.MakeValSetChangeTx(newVal3ABCI, 0)
 	err = assertMempool(css[0].txNotifier).CheckTx(removeValidatorTx3, nil, mempool.TxInfo{})
 	assert.NoError(t, err)
-	propBlock, err = css[0].createProposalBlock(ctx) // changeProposer(t, cs1, vs2)
+	propBlock, _, err = css[0].createProposalBlock(ctx) // changeProposer(t, cs1, vs2)
 	require.NoError(t, err)
 	propBlockParts, err = propBlock.MakePartSet(partSize)
 	require.NoError(t, err)
@@ -529,7 +529,7 @@ func setupChainWithChangingValidators(t *testing.T, name string, nBlocks int) (*
 	sort.Sort(ValidatorStubsByPower(newVss))
 
 	selfIndex = valIndexFn(0)
-	proposal = types.NewProposal(vss[1].Height, round, -1, blockID)
+	proposal = types.NewProposal(vss[1].Height, round, -1, blockID, types.BlobID{})
 	p = proposal.ToProto()
 	if err := vss[1].SignProposal(test.DefaultTestChainID, p); err != nil {
 		t.Fatal("failed to sign bad proposal", err)

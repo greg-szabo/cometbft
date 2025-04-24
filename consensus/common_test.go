@@ -252,20 +252,21 @@ func decideProposal(
 	round int32,
 ) (*types.Proposal, *types.Block) {
 	cs1.mtx.Lock()
-	block, err := cs1.createProposalBlock(ctx)
+	block, _, err := cs1.createProposalBlock(ctx)
 	require.NoError(t, err)
 	blockParts, err := block.MakePartSet(types.BlockPartSizeBytes)
 	require.NoError(t, err)
 	validRound := cs1.ValidRound
 	chainID := cs1.state.ChainID
 	cs1.mtx.Unlock()
+
 	if block == nil {
 		panic("Failed to createProposalBlock. Did you forget to add commit for previous block?")
 	}
 
 	// Make proposal
 	polRound, propBlockID := validRound, types.BlockID{Hash: block.Hash(), PartSetHeader: blockParts.Header()}
-	proposal := types.NewProposal(height, round, polRound, propBlockID)
+	proposal := types.NewProposal(height, round, polRound, propBlockID, types.BlobID{})
 	p := proposal.ToProto()
 	if err := vs.SignProposal(chainID, p); err != nil {
 		panic(err)

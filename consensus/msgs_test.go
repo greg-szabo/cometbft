@@ -338,6 +338,7 @@ func TestConsMsgsVectors(t *testing.T) {
 		BlockID:   bi,
 		Timestamp: date,
 		Signature: []byte("add_more_exclamation"),
+		BlobID:    types.BlobID{},
 	}
 	pbProposal := proposal.ToProto()
 
@@ -389,7 +390,7 @@ func TestConsMsgsVectors(t *testing.T) {
 				Height: 1, Round: 1, BlockPartSetHeader: pbPsh, BlockParts: pbBits, IsCommit: false}}},
 			"1231080110011a24080112206164645f6d6f72655f6578636c616d6174696f6e5f6d61726b735f636f64652d22050801120100"},
 		{"Proposal", &cmtcons.Message{Sum: &cmtcons.Message_Proposal{Proposal: &cmtcons.Proposal{Proposal: *pbProposal}}},
-			"1a720a7008201001180120012a480a206164645f6d6f72655f6578636c616d6174696f6e5f6d61726b735f636f64652d1224080112206164645f6d6f72655f6578636c616d6174696f6e5f6d61726b735f636f64652d320608c0b89fdc053a146164645f6d6f72655f6578636c616d6174696f6e"},
+			"1a760a7408201001180120012a480a206164645f6d6f72655f6578636c616d6174696f6e5f6d61726b735f636f64652d1224080112206164645f6d6f72655f6578636c616d6174696f6e5f6d61726b735f636f64652d320608c0b89fdc053a146164645f6d6f72655f6578636c616d6174696f6e42021200"},
 		{"ProposalPol", &cmtcons.Message{Sum: &cmtcons.Message_ProposalPol{
 			ProposalPol: &cmtcons.ProposalPOL{Height: 1, ProposalPolRound: 1}}},
 			"2206080110011a00"},
@@ -404,14 +405,14 @@ func TestConsMsgsVectors(t *testing.T) {
 			"327b0a790802100122480a206164645f6d6f72655f6578636c616d6174696f6e5f6d61726b735f636f64652d1224080112206164645f6d6f72655f6578636c616d6174696f6e5f6d61726b735f636f64652d2a0608c0b89fdc0532146164645f6d6f72655f6578636c616d6174696f6e38014a09657874656e73696f6e"},
 		{
 			"Vote_with_nrp_ext", &cmtcons.Message{Sum: &cmtcons.Message_Vote{
-				Vote: &cmtcons.Vote{Vote: vextPbNonRp},
-			}},
+			Vote: &cmtcons.Vote{Vote: vextPbNonRp},
+		}},
 			"3281010a7f0802100122480a206164645f6d6f72655f6578636c616d6174696f6e5f6d61726b735f636f64652d1224080112206164645f6d6f72655f6578636c616d6174696f6e5f6d61726b735f636f64652d2a0608c0b89fdc0532146164645f6d6f72655f6578636c616d6174696f6e38014a09657874656e73696f6e5a0430783031",
 		},
 		{
 			"Vote_with_all_vote_ext", &cmtcons.Message{Sum: &cmtcons.Message_Vote{
-				Vote: &cmtcons.Vote{Vote: vextAllPb},
-			}},
+			Vote: &cmtcons.Vote{Vote: vextAllPb},
+		}},
 			"3281010a7f0802100122480a206164645f6d6f72655f6578636c616d6174696f6e5f6d61726b735f636f64652d1224080112206164645f6d6f72655f6578636c616d6174696f6e5f6d61726b735f636f64652d2a0608c0b89fdc0532146164645f6d6f72655f6578636c616d6174696f6e38014a09657874656e73696f6e5a0430783031",
 		},
 		{"HasVote", &cmtcons.Message{Sum: &cmtcons.Message_HasVote{
