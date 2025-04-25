@@ -276,9 +276,9 @@ func (app *Application) CheckTx(_ context.Context, req *abci.RequestCheckTx) (*a
 }
 
 // GetBlob is used in FinalizeBlock to fetch a blob from the cache or from other peers, at a given height.
-// It returns a boolean indicating if a blob exists (either retrieved from the network or from the local cache)
-// and the blob itself.
-// If query through the network is not possible, it returns with an error.
+// The function only simulates a network call to other peers to get the blob, it does not actually make the call.
+// It returns a boolean indicating if a blob exists (either retrieved from the simaulted network or from the
+// local cache) and the blob itself.
 func (app *Application) GetBlob(height int64) ([]byte, bool, error) {
 	// First check the local cache
 	if blob, found := app.blobCache[height]; found {
@@ -289,8 +289,8 @@ func (app *Application) GetBlob(height int64) ([]byte, bool, error) {
 		return blob, true, nil
 	}
 	// If not found, reach out to other peers and retrieve it through them.
-	blobFromPeer, exist := blobOracle(height)
 	time.Sleep(100 * time.Millisecond) // Add simulated network delay
+	blobFromPeer, exist := blobOracle(height)
 	if exist && !isBlob(blobFromPeer) {
 		return nil, false, nil
 	}
