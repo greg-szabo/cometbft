@@ -329,7 +329,10 @@ func (conR *Reactor) Receive(e p2p.Envelope) {
 			conR.Metrics.BlockParts.With("peer_id", string(e.Src.ID())).Add(1)
 			conR.conS.peerMsgQueue <- msgInfo{msg, e.Src.ID()}
 		case *BlobPartMessage:
-			// TODO
+			ps.SetHasProposalBlobPart(msg.Height, msg.Round, int(msg.Part.Index))
+			// Todo: Implement metrics
+			// conR.Metrics.BlobParts.With("peer_id", string(e.Src.ID())).Add(1)
+			conR.conS.peerMsgQueue <- msgInfo{msg, e.Src.ID()}
 		default:
 			conR.Logger.Error(fmt.Sprintf("Unknown message type %v", reflect.TypeOf(msg)))
 		}
@@ -568,6 +571,29 @@ OUTER_LOOP:
 					},
 				}) {
 					ps.SetHasProposalBlockPart(prs.Height, prs.Round, index)
+				}
+				continue OUTER_LOOP
+			}
+		}
+
+		// Send proposal Blob parts?
+		if rs.ProposalBlobParts.HasHeader(prs.ProposalBlobPartSetHeader) {
+			if index, ok := rs.ProposalBlobParts.BitArray().Sub(prs.ProposalBlobParts.Copy()).PickRandom(); ok {
+				part := rs.ProposalBlobParts.GetPart(index)
+				parts, err := part.ToProto()
+				if err != nil {
+					panic(err)
+				}
+				logger.Debug("Sending blob part", "height", prs.Height, "round", prs.Round)
+				if peer.Send(p2p.Envelope{
+					ChannelID: DataChannel,
+					Message: &cmtcons.BlobPart{
+						Height: rs.Height, // This tells peer that this part applies to us.
+						Round:  rs.Round,  // This tells peer that this part applies to us.
+						Part:   *parts,
+					},
+				}) {
+					ps.SetHasProposalBlobPart(prs.Height, prs.Round, index)
 				}
 				continue OUTER_LOOP
 			}
@@ -1125,6 +1151,10 @@ func (ps *PeerState) SetHasProposal(proposal *types.Proposal) {
 	ps.PRS.ProposalBlockParts = bits.NewBitArray(int(proposal.BlockID.PartSetHeader.Total))
 	ps.PRS.ProposalPOLRound = proposal.POLRound
 	ps.PRS.ProposalPOL = nil // Nil until ProposalPOLMessage received.
+	if !proposal.BlobID.IsNil() {
+		ps.PRS.ProposalBlobPartSetHeader = proposal.BlobID.PartSetHeader
+		ps.PRS.ProposalBlobParts = bits.NewBitArray(int(proposal.BlobID.PartSetHeader.Total))
+	}
 }
 
 // InitProposalBlockParts initializes the peer's proposal block parts header and bit array.
@@ -1150,6 +1180,29 @@ func (ps *PeerState) SetHasProposalBlockPart(height int64, round int32, index in
 	}
 
 	ps.PRS.ProposalBlockParts.SetIndex(index, true)
+}
+
+// SetHasProposalBlobPart sets the given blob part index as known for the peer.
+func (ps *PeerState) SetHasProposalBlobPart(height int64, round int32, index int) {
+	ps.mtx.Lock()
+	defer ps.mtx.Unlock()
+
+	ps.setHasProposalBlobPart(height, round, index)
+}
+
+func (ps *PeerState) setHasProposalBlobPart(height int64, round int32, index int) {
+	ps.logger.Debug("setHasProposalBlobPart",
+		"peerH/R",
+		log.NewLazySprintf("%d/%d", ps.PRS.Height, ps.PRS.Round),
+		"H/R",
+		log.NewLazySprintf("%d/%d", height, round),
+		"index", index)
+
+	if ps.PRS.Height != height || ps.PRS.Round != round {
+		return
+	}
+
+	ps.PRS.ProposalBlobParts.SetIndex(index, true)
 }
 
 // PickSendVote picks a vote and sends it to the peer.
@@ -1411,6 +1464,8 @@ func (ps *PeerState) ApplyNewRoundStepMessage(msg *NewRoundStepMessage) {
 		ps.PRS.Proposal = false
 		ps.PRS.ProposalBlockPartSetHeader = types.PartSetHeader{}
 		ps.PRS.ProposalBlockParts = nil
+		ps.PRS.ProposalBlobPartSetHeader = types.PartSetHeader{}
+		ps.PRS.ProposalBlobParts = nil
 		ps.PRS.ProposalPOLRound = -1
 		ps.PRS.ProposalPOL = nil
 		// We'll update the BitArray capacity later.

@@ -224,6 +224,24 @@ func startTestRound(cs *State, height int64, round int32) {
 	cs.startRoutines(0)
 }
 
+func createProposalBlockWithTimeAndBlob(t *testing.T, cs *State, time time.Time) (*types.Block, *types.PartSet, types.BlockID, types.Blob) {
+	t.Helper()
+	block, blob, err := cs.createProposalBlock(context.Background())
+	if !time.IsZero() {
+		block.Time = cmttime.Canonical(time)
+	}
+	assert.NoError(t, err)
+	blockParts, err := block.MakePartSet(types.PartSizeBytes)
+	assert.NoError(t, err)
+	blockID := types.BlockID{Hash: block.Hash(), PartSetHeader: blockParts.Header()}
+	return block, blockParts, blockID, blob
+}
+
+func createProposalBlockAndBlob(t *testing.T, cs *State) (*types.Block, *types.PartSet, types.BlockID, types.Blob) {
+	t.Helper()
+	return createProposalBlockWithTimeAndBlob(t, cs, time.Time{})
+}
+
 //nolint:unused
 func createProposalBlockWithTime(t *testing.T, cs *State, time time.Time) (*types.Block, *types.PartSet, types.BlockID) {
 	t.Helper()
@@ -232,7 +250,7 @@ func createProposalBlockWithTime(t *testing.T, cs *State, time time.Time) (*type
 		block.Time = cmttime.Canonical(time)
 	}
 	assert.NoError(t, err)
-	blockParts, err := block.MakePartSet(types.BlockPartSizeBytes)
+	blockParts, err := block.MakePartSet(types.PartSizeBytes)
 	assert.NoError(t, err)
 	blockID := types.BlockID{Hash: block.Hash(), PartSetHeader: blockParts.Header()}
 	return block, blockParts, blockID
@@ -252,11 +270,10 @@ func decideProposal(
 	vs *validatorStub,
 	height int64,
 	round int32,
-) (*types.Proposal, *types.Block) {
+) (*types.Proposal, *types.Block, types.Blob) {
 	cs1.mtx.Lock()
-	block, _, err := cs1.createProposalBlock(ctx)
-	require.NoError(t, err)
-	blockParts, err := block.MakePartSet(types.BlockPartSizeBytes)
+	block, _, propBlockID, blob := createProposalBlockAndBlob(t, cs1)
+	blockParts, err := block.MakePartSet(types.PartSizeBytes)
 	require.NoError(t, err)
 	validRound := cs1.ValidRound
 	chainID := cs1.state.ChainID
@@ -266,9 +283,22 @@ func decideProposal(
 		panic("Failed to createProposalBlock. Did you forget to add commit for previous block?")
 	}
 
+	var (
+		blobParts *types.PartSet
+		blobID    = types.BlobID{}
+	)
+
+	if !blob.IsNil() {
+		blobParts = types.NewPartSetFromData(blob, types.PartSizeBytes)
+		blobID = types.BlobID{
+			Hash:          blob.Hash(),
+			PartSetHeader: blobParts.Header(),
+		}
+	}
+
 	// Make proposal
 	polRound, propBlockID := validRound, types.BlockID{Hash: block.Hash(), PartSetHeader: blockParts.Header()}
-	proposal := types.NewProposal(height, round, polRound, propBlockID, types.BlobID{})
+	proposal := types.NewProposal(height, round, polRound, propBlockID, blobID)
 	p := proposal.ToProto()
 	if err := vs.SignProposal(chainID, p); err != nil {
 		panic(err)
@@ -276,7 +306,7 @@ func decideProposal(
 
 	proposal.Signature = p.Signature
 
-	return proposal, block
+	return proposal, block, blob
 }
 
 func addVotes(to *State, votes ...*types.Vote) {
@@ -486,6 +516,12 @@ func randState(nValidators int) (*State, []*validatorStub) {
 	return randStateWithApp(nValidators, kvstore.NewInMemoryApplication())
 }
 
+func randStateWithBlob(nValidators int) (*State, []*validatorStub) {
+	app := kvstore.NewInMemoryApplication()
+	app.SetGenerateBlobs()
+	return randStateWithApp(nValidators, app)
+}
+
 func randStateWithAppWithHeight(
 	nValidators int,
 	app abci.Application,
@@ -672,7 +708,7 @@ func ensureNewUnlock(unlockCh <-chan cmtpubsub.Message, height int64, round int3
 		"Timeout expired while waiting for NewUnlock event")
 }
 
-func ensureProposal(proposalCh <-chan cmtpubsub.Message, height int64, round int32, propID types.BlockID) {
+func ensureProposal(proposalCh <-chan cmtpubsub.Message, height int64, round int32, propID types.BlockID, blobID types.BlobID) {
 	select {
 	case <-time.After(ensureTimeout):
 		panic("Timeout expired while waiting for NewProposal event")
@@ -690,6 +726,11 @@ func ensureProposal(proposalCh <-chan cmtpubsub.Message, height int64, round int
 		}
 		if !proposalEvent.BlockID.Equals(propID) {
 			panic(fmt.Sprintf("Proposed block does not match expected block (%v != %v)", proposalEvent.BlockID, propID))
+		}
+		if !blobID.IsNil() {
+			if !bytes.Equal(proposalEvent.BlobID.Hash, blobID.Hash) {
+				panic(fmt.Sprintf("Proposed blob does not match expected blob (%v != %v)", proposalEvent.BlobID, blobID))
+			}
 		}
 	}
 }
@@ -997,6 +1038,18 @@ func newPersistentKVStore() abci.Application {
 
 func newKVStore() abci.Application {
 	return kvstore.NewInMemoryApplication()
+}
+
+func newKVStoreWithBlob() abci.Application {
+	app := kvstore.NewInMemoryApplication()
+	app.SetGenerateBlobs()
+	return app
+}
+
+func newPersistentKVStoreWithPathAndBlob(dbDir string) abci.Application {
+	app := kvstore.NewPersistentApplication(dbDir)
+	app.SetGenerateBlobs()
+	return app
 }
 
 func newPersistentKVStoreWithPath(dbDir string) abci.Application {

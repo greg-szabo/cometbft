@@ -368,7 +368,7 @@ func TestSwitchToConsensusVoteExtensions(t *testing.T) {
 			// Consensus is preparing to do the next height after the stored height.
 			cs.Height = testCase.storedHeight + 1
 			propBlock.Height = testCase.storedHeight
-			blockParts, err := propBlock.MakePartSet(types.BlockPartSizeBytes)
+			blockParts, err := propBlock.MakePartSet(types.PartSizeBytes)
 			require.NoError(t, err)
 
 			var voteSet *types.VoteSet
@@ -417,6 +417,30 @@ func TestSwitchToConsensusVoteExtensions(t *testing.T) {
 	}
 }
 
+func TestReactorRecordsVotesAndBlockPartsAndBlobParts(t *testing.T) {
+	n := 4
+
+	css, _, _, cleanup := randConsensusNetWithPeers(t, n, n, "consensus_reactor_test", newMockTickerFunc(true), newPersistentKVStoreWithPathAndBlob)
+
+	defer cleanup()
+	reactors, blocksSubs, eventBuses := startConsensusNet(t, css, n)
+	defer stopConsensusNet(log.TestingLogger(), reactors, eventBuses)
+
+	// wait till everyone makes the first new block
+	timeoutWaitGroup(n, func(j int) {
+		<-blocksSubs[j].Out()
+	})
+
+	// Get peer
+	peer := reactors[1].Switch.Peers().List()[0]
+	// Get peer state
+	ps := peer.Get(types.PeerStateKey).(*PeerState)
+
+	assert.Greater(t, ps.VotesSent(), 0, "number of votes sent should have increased")
+	assert.Greater(t, ps.BlockPartsSent(), 0, "number of block parts sent should have increased")
+	assert.Greater(t, ps.BlobPartsSent(), 0, "number of blob parts sent should have increased")
+}
+
 // Test we record stats about votes and block parts from other peers.
 func TestReactorRecordsVotesAndBlockParts(t *testing.T) {
 	N := 4
@@ -436,7 +460,7 @@ func TestReactorRecordsVotesAndBlockParts(t *testing.T) {
 	ps := peer.Get(types.PeerStateKey).(*PeerState)
 
 	assert.Equal(t, true, ps.VotesSent() > 0, "number of votes sent should have increased")
-	assert.Equal(t, true, ps.BlockPartsSent() > 0, "number of votes sent should have increased")
+	assert.Equal(t, true, ps.BlockPartsSent() > 0, "number of block parts sent should have increased")
 }
 
 //-------------------------------------------------------------
@@ -886,7 +910,7 @@ func TestNewValidBlockMessageValidateBasic(t *testing.T) {
 		},
 		{
 			func(msg *NewValidBlockMessage) { msg.BlockParts = bits.NewBitArray(int(types.MaxBlockPartsCount) + 1) },
-			"blockParts bit array size 1602 not equal to BlockPartSetHeader.Total 1",
+			"blockParts bit array size 1601 not equal to BlockPartSetHeader.Total 1",
 		},
 	}
 

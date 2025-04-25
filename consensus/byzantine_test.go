@@ -213,7 +213,7 @@ func TestByzantinePrevoteEquivocation(t *testing.T) {
 		block, _, err := lazyProposer.blockExec.CreateProposalBlock(
 			ctx, lazyProposer.Height, lazyProposer.state, extCommit, proposerAddr)
 		require.NoError(t, err)
-		blockParts, err := block.MakePartSet(types.BlockPartSizeBytes)
+		blockParts, err := block.MakePartSet(types.PartSizeBytes)
 		require.NoError(t, err)
 
 		// Flush the WAL. Otherwise, we may not recompute the same proposal to sign,
@@ -304,7 +304,7 @@ func TestByzantineConflictingProposalsWithPartition(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	app := newKVStore
+	app := newKVStoreWithBlob
 	css, cleanup := randConsensusNet(t, N, "consensus_byzantine_test", newMockTickerFunc(false), app)
 	defer cleanup()
 
@@ -342,7 +342,7 @@ func TestByzantineConflictingProposalsWithPartition(t *testing.T) {
 			}
 			// We are setting the prevote function to do nothing because the prevoting
 			// and precommitting are done alongside the proposal.
-			css[i].doPrevote = func(height int64, round int32) {}
+			css[i].doPrevote = func(_ int64, _ int32) {}
 		}
 
 		eventBus := css[i].eventBus
@@ -461,12 +461,16 @@ func byzantineDecideProposalFunc(ctx context.Context, t *testing.T, height int64
 	// Avoid sending on internalMsgQueue and running consensus state.
 
 	// Create a new proposal block from state/txs from the mempool.
-	block1, _, err := cs.createProposalBlock(ctx)
-	require.NoError(t, err)
-	blockParts1, err := block1.MakePartSet(types.BlockPartSizeBytes)
-	require.NoError(t, err)
-	polRound, propBlockID := cs.ValidRound, types.BlockID{Hash: block1.Hash(), PartSetHeader: blockParts1.Header()}
-	proposal1 := types.NewProposal(height, round, polRound, propBlockID, types.BlobID{})
+	block1, blockParts1, propBlockID, blob := createProposalBlockAndBlob(t, cs)
+
+	blobParts := types.NewPartSetFromData(blob, types.PartSizeBytes)
+	blobID    := types.BlobID{
+		Hash:          blob.Hash(),
+		PartSetHeader: blobParts.Header(),
+	}
+
+	polRound := cs.ValidRound
+	proposal1 := types.NewProposal(height, round, polRound, propBlockID, blobID)
 	p1 := proposal1.ToProto()
 	if err := cs.privValidator.SignProposal(cs.state.ChainID, p1); err != nil {
 		t.Error(err)
@@ -480,10 +484,10 @@ func byzantineDecideProposalFunc(ctx context.Context, t *testing.T, height int64
 	// Create a new proposal block from state/txs from the mempool.
 	block2, _, err := cs.createProposalBlock(ctx)
 	require.NoError(t, err)
-	blockParts2, err := block2.MakePartSet(types.BlockPartSizeBytes)
+	blockParts2, err := block2.MakePartSet(types.PartSizeBytes)
 	require.NoError(t, err)
 	polRound, propBlockID = cs.ValidRound, types.BlockID{Hash: block2.Hash(), PartSetHeader: blockParts2.Header()}
-	proposal2 := types.NewProposal(height, round, polRound, propBlockID, types.BlobID{})
+	proposal2 := types.NewProposal(height, round, polRound, propBlockID, blobID)
 	p2 := proposal2.ToProto()
 	if err := cs.privValidator.SignProposal(cs.state.ChainID, p2); err != nil {
 		t.Error(err)
@@ -499,9 +503,9 @@ func byzantineDecideProposalFunc(ctx context.Context, t *testing.T, height int64
 	t.Logf("Byzantine: broadcasting conflicting proposals to %d peers", len(peers))
 	for i, peer := range peers {
 		if i < len(peers)/2 {
-			go sendProposalAndParts(height, round, cs, peer, proposal1, block1Hash, blockParts1)
+			go sendProposalAndParts(height, round, cs, peer, proposal1, block1Hash, blockParts1, blobParts)
 		} else {
-			go sendProposalAndParts(height, round, cs, peer, proposal2, block2Hash, blockParts2)
+			go sendProposalAndParts(height, round, cs, peer, proposal2, block2Hash, blockParts2, blobParts)
 		}
 	}
 }
@@ -513,7 +517,7 @@ func sendProposalAndParts(
 	peer p2p.Peer,
 	proposal *types.Proposal,
 	blockHash []byte,
-	parts *types.PartSet,
+	blockParts, blobParts *types.PartSet,
 ) {
 	// proposal
 	peer.Send(p2p.Envelope{
@@ -521,9 +525,9 @@ func sendProposalAndParts(
 		Message:   &cmtcons.Proposal{Proposal: *proposal.ToProto()},
 	})
 
-	// parts
-	for i := 0; i < int(parts.Total()); i++ {
-		part := parts.GetPart(i)
+	// block parts
+	for i := 0; i < int(blockParts.Total()); i++ {
+		part := blockParts.GetPart(i)
 		pp, err := part.ToProto()
 		if err != nil {
 			panic(err) // TODO: wbanfield better error handling
@@ -538,10 +542,29 @@ func sendProposalAndParts(
 		})
 	}
 
+	// blob parts
+	if blobParts != nil {
+		for i := 0; i < int(blobParts.Total()); i++ {
+			part := blobParts.GetPart(i)
+			pp, err := part.ToProto()
+			if err != nil {
+				panic(err)
+			}
+			peer.Send(p2p.Envelope{
+				ChannelID: DataChannel,
+				Message: &cmtcons.BlobPart{
+					Height: height, // This tells peer that this part applies to us.
+					Round:  round,  // This tells peer that this part applies to us.
+					Part:   *pp,
+				},
+			})
+		}
+	}
+
 	// votes
 	cs.mtx.Lock()
-	prevote, _ := cs.signVote(cmtproto.PrevoteType, blockHash, parts.Header(), nil)
-	precommit, _ := cs.signVote(cmtproto.PrecommitType, blockHash, parts.Header(), nil)
+	prevote, _ := cs.signVote(cmtproto.PrevoteType, blockHash, blockParts.Header(), nil)
+	precommit, _ := cs.signVote(cmtproto.PrecommitType, blockHash, blockParts.Header(), nil)
 	cs.mtx.Unlock()
 	peer.Send(p2p.Envelope{
 		ChannelID: VoteChannel,
