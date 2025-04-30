@@ -93,6 +93,7 @@ type Testnet struct {
 	LogFormat                                            string
 	Prometheus                                           bool
 	BlockMaxBytes                                        int64
+	BlobMaxBytes                                         int64
 	VoteExtensionsEnableHeight                           int64
 	VoteExtensionsUpdateHeight                           int64
 	ExperimentalMaxGossipConnectionsToPersistentPeers    uint
